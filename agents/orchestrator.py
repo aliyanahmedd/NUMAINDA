@@ -1,5 +1,5 @@
 """
-Orchestrator Agent — routes to domain, IP, or username scan flows.
+Orchestrator Agent - routes to domain, IP, or username scan flows.
 """
 import anthropic
 from config.settings import ANTHROPIC_API_KEY
@@ -9,6 +9,7 @@ from database.models import init_db
 from database.db import (
     create_target, insert_geo_data, insert_ssl_certs,
     insert_cve_findings, insert_paste_findings, insert_port_findings,
+    insert_analysis,
 )
 
 from agents.email_agent import EmailAgent
@@ -40,7 +41,7 @@ class OSINTOrchestrator:
 
         if input_type == "email":
             domain = extract_domain_from_email(raw_input)
-            self._emit(f"[*] Email detected — scanning domain: {domain}")
+            self._emit(f"[*] Email detected - scanning domain: {domain}")
             target_id = create_target(raw_input, input_type)
             return self._run_domain(domain, target_id)
 
@@ -57,7 +58,7 @@ class OSINTOrchestrator:
             return self._run_ip(ip, target_id)
 
         else:
-            log_warn(f"Unrecognized input: {raw_input!r} — treating as domain")
+            log_warn(f"Unrecognized input: {raw_input!r} - treating as domain")
             domain = normalize_domain(raw_input)
             target_id = create_target(raw_input, "domain")
             return self._run_domain(domain, target_id)
@@ -67,57 +68,57 @@ class OSINTOrchestrator:
     def _run_domain(self, domain: str, target_id: int) -> dict:
         findings: dict = {"scan_type": "domain", "domain": domain, "target_id": target_id}
 
-        print_section("Phase 1 — DNS & WHOIS")
-        self._emit("[DNS] Phase 1/14 — DNS & WHOIS reconnaissance...")
+        print_section("Phase 1 - DNS & WHOIS")
+        self._emit("[DNS] Phase 1/14 - DNS & WHOIS reconnaissance...")
         dns_data = DNSAgent().run(target_id, domain)
         findings["dns"] = dns_data
-        self._emit(f"[+] DNS complete — {len(dns_data.get('records', []))} records found")
+        self._emit(f"[+] DNS complete - {len(dns_data.get('records', []))} records found")
 
-        print_section("Phase 2 — Email Discovery")
-        self._emit("[EMAIL] Phase 2/14 — Email discovery via Hunter.io...")
+        print_section("Phase 2 - Email Discovery")
+        self._emit("[EMAIL] Phase 2/14 - Email discovery via Hunter.io...")
         emails = EmailAgent().run(target_id, domain)
         findings["emails"] = emails
-        self._emit(f"[+] Email discovery complete — {len(emails)} emails found")
+        self._emit(f"[+] Email discovery complete - {len(emails)} emails found")
 
-        print_section("Phase 3 — Subdomain Enumeration")
-        self._emit("[SUB] Phase 3/14 — Subdomain enumeration (crt.sh + HackerTarget)...")
+        print_section("Phase 3 - Subdomain Enumeration")
+        self._emit("[SUB] Phase 3/14 - Subdomain enumeration (crt.sh + HackerTarget)...")
         subdomains = SubdomainAgent().run(target_id, domain)
         findings["subdomains"] = subdomains
         risky = sum(1 for s in subdomains if s.get("risk_flag"))
-        self._emit(f"[+] Subdomains complete — {len(subdomains)} found, {risky} flagged risky")
+        self._emit(f"[+] Subdomains complete - {len(subdomains)} found, {risky} flagged risky")
 
-        print_section("Phase 4 — IP Geolocation")
-        self._emit("[GEO] Phase 4/14 — Geolocating discovered IPs...")
+        print_section("Phase 4 - IP Geolocation")
+        self._emit("[GEO] Phase 4/14 - Geolocating discovered IPs...")
         geo = GeoAgent().run(subdomains, dns_data)
         findings["geo"] = geo
         insert_geo_data(target_id, geo)
         countries = list({g["country"] for g in geo if g.get("country")})
-        self._emit(f"[+] Geolocation complete — {len(geo)} IPs across {len(countries)} country/ies")
+        self._emit(f"[+] Geolocation complete - {len(geo)} IPs across {len(countries)} country/ies")
 
-        print_section("Phase 5 — Port Scanning")
-        self._emit("[PORT] Phase 5/14 — Scanning for open ports...")
+        print_section("Phase 5 - Port Scanning")
+        self._emit("[PORT] Phase 5/14 - Scanning for open ports...")
         ports = PortAgent().run(subdomains)
         findings["ports"] = ports
         insert_port_findings(target_id, ports)
         dangerous = sum(len(h.get("dangerous", [])) for h in ports)
-        self._emit(f"[+] Port scan complete — {len(ports)} hosts scanned, {dangerous} dangerous port(s)")
+        self._emit(f"[+] Port scan complete - {len(ports)} hosts scanned, {dangerous} dangerous port(s)")
 
-        print_section("Phase 6 — Breach Intelligence")
-        self._emit("[BREACH] Phase 6/14 — Checking breach databases...")
+        print_section("Phase 6 - Breach Intelligence")
+        self._emit("[BREACH] Phase 6/14 - Checking breach databases...")
         breaches = BreachAgent().run(target_id, emails)
         findings["breaches"] = breaches
-        self._emit(f"[+] Breach check complete — {len(breaches)} record(s) found")
+        self._emit(f"[+] Breach check complete - {len(breaches)} record(s) found")
 
-        print_section("Phase 7 — Tech Stack Detection")
-        self._emit("[TECH] Phase 7/14 — Fingerprinting tech stack & versions...")
+        print_section("Phase 7 - Tech Stack Detection")
+        self._emit("[TECH] Phase 7/14 - Fingerprinting tech stack & versions...")
         tech = TechAgent().run(domain)
         findings["tech"] = tech
         techs = tech.get("technologies", [])
         versioned = tech.get("versioned", {})
-        self._emit(f"[+] Tech stack detected — {', '.join(techs[:5]) or 'unknown'} | {len(versioned)} versioned")
+        self._emit(f"[+] Tech stack detected - {', '.join(techs[:5]) or 'unknown'} | {len(versioned)} versioned")
 
-        print_section("Phase 8 — SSL Certificate Check")
-        self._emit("[SSL] Phase 8/14 — Checking SSL certificate expiry...")
+        print_section("Phase 8 - SSL Certificate Check")
+        self._emit("[SSL] Phase 8/14 - Checking SSL certificate expiry...")
         ssl_data = SSLAgent().run(domain, subdomains)
         findings["ssl"] = ssl_data
         insert_ssl_certs(target_id, ssl_data)
@@ -125,50 +126,52 @@ class OSINTOrchestrator:
         if main_cert:
             days = main_cert.get("days_left")
             day_str = f"{days} days" if days is not None else "unknown"
-            self._emit(f"[+] SSL complete — expires in {day_str} via {main_cert.get('issuer','unknown')}")
+            self._emit(f"[+] SSL complete - expires in {day_str} via {main_cert.get('issuer','unknown')}")
         else:
-            self._emit("[!] SSL check — no certificate data retrieved")
+            self._emit("[!] SSL check - no certificate data retrieved")
 
-        print_section("Phase 9 — CVE Lookup")
-        self._emit("[CVE] Phase 9/14 — Looking up CVEs for detected technologies...")
+        print_section("Phase 9 - CVE Lookup")
+        self._emit("[CVE] Phase 9/14 - Looking up CVEs for detected technologies...")
         cves = CVEAgent().run(tech)
         findings["cves"] = cves
         insert_cve_findings(target_id, cves)
         total_cves = sum(len(e["cves"]) for e in cves)
         critical = sum(1 for e in cves for c in e["cves"] if c.get("severity") in ("CRITICAL", "HIGH"))
-        self._emit(f"[+] CVE lookup complete — {total_cves} CVE(s) found, {critical} critical/high")
+        self._emit(f"[+] CVE lookup complete - {total_cves} CVE(s) found, {critical} critical/high")
 
-        print_section("Phase 10 — Threat Intelligence")
-        self._emit("[THREAT] Phase 10/14 — Querying VirusTotal...")
+        print_section("Phase 10 - Threat Intelligence")
+        self._emit("[THREAT] Phase 10/14 - Querying VirusTotal...")
         threat_intel = ThreatAgent().run(target_id, domain, subdomains)
         findings["threat_intel"] = threat_intel
         malicious = sum(1 for t in threat_intel if t.get("malicious"))
-        self._emit(f"[+] Threat scan complete — {malicious} malicious indicator(s)")
+        self._emit(f"[+] Threat scan complete - {malicious} malicious indicator(s)")
 
-        print_section("Phase 11 — Paste Search")
-        self._emit("[PASTE] Phase 11/14 — Searching Pastebin for leaks...")
+        print_section("Phase 11 - Paste Search")
+        self._emit("[PASTE] Phase 11/14 - Searching Pastebin for leaks...")
         pastes = PasteAgent().run(domain, emails)
         findings["pastes"] = pastes
         if pastes:
             insert_paste_findings(target_id, pastes)
-        self._emit(f"[+] Paste search complete — {len(pastes)} paste(s) found")
+        self._emit(f"[+] Paste search complete - {len(pastes)} paste(s) found")
 
-        print_section("Phase 12 — Social Media Intelligence")
-        self._emit("[SOCIAL] Phase 12/14 — GitHub intelligence gathering...")
+        print_section("Phase 12 - Social Media Intelligence")
+        self._emit("[SOCIAL] Phase 12/14 - GitHub intelligence gathering...")
         social = SocialAgent().run(domain)
         findings["social"] = social
         repos = len(social.get("repositories", []))
-        self._emit(f"[+] Social scan complete — {repos} GitHub repo(s) found")
+        self._emit(f"[+] Social scan complete - {repos} GitHub repo(s) found")
 
-        print_section("Phase 13 — Risk Scoring")
-        self._emit("[SCORE] Phase 13/14 — Calculating risk scores...")
+        print_section("Phase 13 - Risk Scoring")
+        self._emit("[SCORE] Phase 13/14 - Calculating risk scores...")
         scores = ScoringAgent().run(target_id, findings)
         findings["scores"] = scores
-        self._emit(f"[+] Risk scoring complete — Overall: {scores.get('total', 0):.1f}/10")
+        self._emit(f"[+] Risk scoring complete - Overall: {scores.get('total', 0):.1f}/10")
 
-        print_section("Phase 14 — AI Analysis")
-        self._emit("[AI] Phase 14/14 — Claude AI analyzing findings...")
-        findings["analysis"] = self._claude_domain_analysis(domain, findings)
+        print_section("Phase 14 - AI Analysis")
+        self._emit("[AI] Phase 14/14 - Claude AI analyzing findings...")
+        analysis = self._claude_domain_analysis(domain, findings)
+        findings["analysis"] = analysis
+        insert_analysis(target_id, analysis)
         self._emit("[+] AI analysis complete")
 
         return findings
@@ -178,47 +181,49 @@ class OSINTOrchestrator:
     def _run_ip(self, ip: str, target_id: int) -> dict:
         findings: dict = {"scan_type": "ip", "domain": ip, "target_id": target_id}
 
-        print_section("Phase 1 — Reverse DNS & WHOIS")
-        self._emit("[RDNS] Phase 1/6 — Reverse DNS & WHOIS lookup...")
+        print_section("Phase 1 - Reverse DNS & WHOIS")
+        self._emit("[RDNS] Phase 1/6 - Reverse DNS & WHOIS lookup...")
         ip_data = IPAgent().run(ip)
         findings["ip_data"] = ip_data
         self._emit(f"[+] Reverse DNS: {ip_data.get('hostname') or 'none'} | Org: {ip_data.get('whois', {}).get('org','unknown')}")
 
-        print_section("Phase 2 — Geolocation")
-        self._emit("[GEO] Phase 2/6 — Geolocating IP...")
+        print_section("Phase 2 - Geolocation")
+        self._emit("[GEO] Phase 2/6 - Geolocating IP...")
         geo = GeoAgent().run([], {"records": [{"record_type": "A", "value": ip}]})
         findings["geo"] = geo
         insert_geo_data(target_id, geo)
         if geo:
             g = geo[0]
-            self._emit(f"[+] Geolocation: {g.get('city','')}, {g.get('country','')} — {g.get('org','')}")
+            self._emit(f"[+] Geolocation: {g.get('city','')}, {g.get('country','')} - {g.get('org','')}")
         else:
             self._emit("[!] Geolocation returned no data")
 
-        print_section("Phase 3 — Port Scanning")
-        self._emit("[PORT] Phase 3/6 — Scanning open ports...")
+        print_section("Phase 3 - Port Scanning")
+        self._emit("[PORT] Phase 3/6 - Scanning open ports...")
         ports = PortAgent().run([{"subdomain": ip, "ip": ip}])
         findings["ports"] = ports
         insert_port_findings(target_id, ports)
         open_ports = ports[0].get("ports", []) if ports else []
-        self._emit(f"[+] Port scan complete — {len(open_ports)} open port(s)")
+        self._emit(f"[+] Port scan complete - {len(open_ports)} open port(s)")
 
-        print_section("Phase 4 — Threat Intelligence")
-        self._emit("[THREAT] Phase 4/6 — VirusTotal IP check...")
+        print_section("Phase 4 - Threat Intelligence")
+        self._emit("[THREAT] Phase 4/6 - VirusTotal IP check...")
         threat_intel = ThreatAgent().run(target_id, ip, [])
         findings["threat_intel"] = threat_intel
         malicious = sum(1 for t in threat_intel if t.get("malicious"))
-        self._emit(f"[+] Threat check complete — {malicious} malicious indicator(s)")
+        self._emit(f"[+] Threat check complete - {malicious} malicious indicator(s)")
 
-        print_section("Phase 5 — Risk Scoring")
-        self._emit("[SCORE] Phase 5/6 — Calculating risk scores...")
+        print_section("Phase 5 - Risk Scoring")
+        self._emit("[SCORE] Phase 5/6 - Calculating risk scores...")
         scores = ScoringAgent().run(target_id, findings)
         findings["scores"] = scores
-        self._emit(f"[+] Risk scoring complete — Overall: {scores.get('total', 0):.1f}/10")
+        self._emit(f"[+] Risk scoring complete - Overall: {scores.get('total', 0):.1f}/10")
 
-        print_section("Phase 6 — AI Analysis")
-        self._emit("[AI] Phase 6/6 — Claude AI analyzing findings...")
-        findings["analysis"] = self._claude_ip_analysis(ip, findings)
+        print_section("Phase 6 - AI Analysis")
+        self._emit("[AI] Phase 6/6 - Claude AI analyzing findings...")
+        analysis = self._claude_ip_analysis(ip, findings)
+        findings["analysis"] = analysis
+        insert_analysis(target_id, analysis)
         self._emit("[+] AI analysis complete")
 
         return findings
@@ -291,8 +296,8 @@ DATA:
 - Malicious (VirusTotal): {malicious or 'none'}
 
 Write:
-1. SUMMARY — what is this IP, who owns it
-2. RISK ASSESSMENT — what the open ports and threat data indicate
+1. SUMMARY - what is this IP, who owns it
+2. RISK ASSESSMENT - what the open ports and threat data indicate
 3. RECOMMENDATIONS"""
 
         msg = self.client.messages.create(

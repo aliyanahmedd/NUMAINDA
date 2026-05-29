@@ -1,4 +1,4 @@
-"""Email Discovery Agent — Hunter.io + web crawler + pattern generator."""
+"""Email Discovery Agent - Hunter.io + web crawler + pattern generator."""
 import re
 import requests
 from bs4 import BeautifulSoup

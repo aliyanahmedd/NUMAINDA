@@ -1,4 +1,4 @@
-"""Tech Stack Detection Agent — HTTP headers, HTML patterns, and version extraction."""
+"""Tech Stack Detection Agent - HTTP headers, HTML patterns, and version extraction."""
 import re
 import requests
 from utils.helpers import log_info, log_success, log_warn

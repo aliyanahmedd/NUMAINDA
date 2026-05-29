@@ -13,8 +13,8 @@ An AI-powered Open Source Intelligence agent built with Claude (Anthropic) and P
 | 5 | Tech Agent | HTTP headers, HTML fingerprinting |
 | 6 | Threat Agent | VirusTotal |
 | 7 | Social Agent | GitHub API |
-| 8 | Scoring Agent | Weighted risk model (0–10) |
-| 9 | AI Analysis | Claude Sonnet — correlates all findings |
+| 8 | Scoring Agent | Weighted risk model (0-10) |
+| 9 | AI Analysis | Claude Sonnet - correlates all findings |
 
 **Output:** plain-text report, interactive HTML report, interactive network graph, JSON export.
 
@@ -34,7 +34,7 @@ Target: example.com
 [EMAIL INTELLIGENCE]
   14 emails discovered
   • cto@example.com (CTO, confidence=92%)
-  • security@example.com (–, confidence=78%)
+  • security@example.com (-, confidence=78%)
 
 [SUBDOMAIN ENUMERATION]
   27 subdomains found | 4 flagged as risky
@@ -65,7 +65,7 @@ cp .env.example .env
 
 | API | Free Tier | Get Key At |
 |-----|-----------|------------|
-| Anthropic | — | console.anthropic.com |
+| Anthropic | - | console.anthropic.com |
 | Hunter.io | 100 searches/month | hunter.io |
 | Shodan | 1 query/month | shodan.io |
 | VirusTotal | Unlimited | virustotal.com |
@@ -94,7 +94,7 @@ osint-agent/
 │   ├── tech_agent.py        # Tech stack fingerprinting
 │   ├── threat_agent.py      # VirusTotal threat intel
 │   ├── social_agent.py      # GitHub intelligence
-│   └── scoring_agent.py     # Risk scoring (0–10)
+│   └── scoring_agent.py     # Risk scoring (0-10)
 ├── config/settings.py       # Config & API keys loader
 ├── database/                # SQLite persistence
 ├── output/

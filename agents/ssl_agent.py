@@ -1,4 +1,4 @@
-"""SSL Certificate Agent — checks expiry, issuer, and SANs using Python stdlib."""
+"""SSL Certificate Agent - checks expiry, issuer, and SANs using Python stdlib."""
 import ssl
 import socket
 from datetime import datetime

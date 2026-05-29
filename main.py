@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OSINT Agent — Entry Point
+OSINT Agent - Entry Point
 
 Usage:
     python main.py <target>

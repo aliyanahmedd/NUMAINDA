@@ -1,4 +1,4 @@
-"""Risk Scoring Agent — aggregates all findings into a 0–10 attack surface score."""
+"""Risk Scoring Agent - aggregates all findings into a 0-10 attack surface score."""
 from database.db import upsert_risk_score
 from utils.helpers import log_info, log_success
 

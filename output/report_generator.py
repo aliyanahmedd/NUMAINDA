@@ -43,7 +43,7 @@ def generate_text_report(findings: dict) -> str:
     ]
 
     for e in emails[:10]:
-        lines.append(f"  • {e['email']} ({e.get('position','–')}, confidence={e.get('confidence',0)}%)")
+        lines.append(f"  • {e['email']} ({e.get('position','-')}, confidence={e.get('confidence',0)}%)")
     if len(emails) > 10:
         lines.append(f"  ... and {len(emails) - 10} more")
 
@@ -53,7 +53,7 @@ def generate_text_report(findings: dict) -> str:
         f"  {len(subdomains)} subdomains found | {len(risky_subs)} flagged as risky",
     ]
     for s in risky_subs:
-        lines.append(f"  ⚠  {s['subdomain']} (IP: {s.get('ip','–')})")
+        lines.append(f"  ⚠  {s['subdomain']} (IP: {s.get('ip','-')})")
 
     lines += [
         "",
@@ -61,7 +61,7 @@ def generate_text_report(findings: dict) -> str:
         f"  {len(breaches)} breach record(s) found",
     ]
     for b in breaches:
-        lines.append(f"  • {b['email']} in {b['breach_name']} ({b.get('breach_date','–')})")
+        lines.append(f"  • {b['email']} in {b['breach_name']} ({b.get('breach_date','-')})")
 
     lines += [
         "",
@@ -69,7 +69,7 @@ def generate_text_report(findings: dict) -> str:
         f"  {len(malicious)} malicious indicator(s) detected",
     ]
     for t in malicious:
-        lines.append(f"  ✗ {t['indicator']} — {t.get('engine_hits',0)} engines flagged")
+        lines.append(f"  ✗ {t['indicator']} - {t.get('engine_hits',0)} engines flagged")
 
     lines += [
         "",

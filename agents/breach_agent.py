@@ -1,4 +1,4 @@
-"""Breach Intelligence Agent — checks BreachDirectory (free via RapidAPI)."""
+"""Breach Intelligence Agent - checks BreachDirectory (free via RapidAPI)."""
 from utils.api_client import breachdirectory_check_email
 from utils.helpers import log_info, log_success, log_warn
 from database.db import insert_breaches

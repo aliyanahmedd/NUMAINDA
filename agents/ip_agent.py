@@ -1,4 +1,4 @@
-"""IP Intelligence Agent — reverse DNS and WHOIS enrichment for bare IP addresses."""
+"""IP Intelligence Agent - reverse DNS and WHOIS enrichment for bare IP addresses."""
 import socket
 import whois
 from utils.helpers import log_info, log_success, log_warn

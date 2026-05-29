@@ -130,6 +130,22 @@ CREATE TABLE IF NOT EXISTS port_findings (
     dangerous    TEXT,
     source       TEXT
 );
+
+CREATE TABLE IF NOT EXISTS analysis (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    target_id    INTEGER REFERENCES targets(id) UNIQUE,
+    content      TEXT,
+    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS scan_files (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    target_id    INTEGER REFERENCES targets(id) UNIQUE,
+    graph_path   TEXT,
+    html_path    TEXT,
+    txt_path     TEXT,
+    json_path    TEXT
+);
 """
 
 

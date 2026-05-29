@@ -1,306 +1,549 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OSINT Agent</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OSINT Agent | Automated Intelligence</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0a0e1a;
-      --bg2: #0f1420;
-      --card: #111827;
-      --border: #1e2d40;
-      --green: #00ff88;
-      --cyan: #00ccff;
-      --text: #e2e8f0;
-      --muted: #64748b;
+      --navy:    #ffffff;
+      --navy2:   #f8fafc;
+      --navy3:   #f1f5f9;
+      --border:  #e2e8f0;
+      --blue:    #0284c7;
+      --blue2:   #0369a1;
+      --cyan:    #0891b2;
+      --text:    #0f172a;
+      --muted:   #475569;
+      --dim:     #94a3b8;
     }
 
+    html { overflow-x: hidden; }
+
     body {
-      background: var(--bg);
+      background: var(--navy);
       color: var(--text);
-      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      position: relative;
     }
 
-    /* Animated grid background */
+    /* soft glow background */
     body::before {
       content: '';
       position: fixed;
       inset: 0;
       background-image:
-        linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
-      background-size: 40px 40px;
-      animation: gridMove 20s linear infinite;
+        radial-gradient(circle at 20% 50%, rgba(8,145,178,0.05) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(2,132,199,0.04) 0%, transparent 40%);
       pointer-events: none;
+      z-index: 0;
     }
 
-    @keyframes gridMove {
-      0% { transform: translateY(0); }
-      100% { transform: translateY(40px); }
-    }
-
-    /* Scanline overlay */
+    /* dot grid */
     body::after {
       content: '';
       position: fixed;
       inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,0,0,0.15) 2px,
-        rgba(0,0,0,0.15) 4px
-      );
+      background-image: radial-gradient(circle, rgba(2,132,199,0.08) 1px, transparent 1px);
+      background-size: 32px 32px;
       pointer-events: none;
+      z-index: 0;
+      opacity: 0.5;
     }
 
-    .container {
-      position: relative;
-      z-index: 1;
-      text-align: center;
-      padding: 2rem;
-      max-width: 780px;
-      width: 100%;
+    /* ── Nav ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #2f9fde;
+      border-bottom: 1px solid rgba(0,0,0,0.12);
+      padding: 0 3rem;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
     .logo {
-      font-family: monospace;
-      font-size: 0.75rem;
-      color: var(--green);
-      text-shadow: 0 0 20px rgba(0,255,136,0.5);
-      margin-bottom: 1.5rem;
-      line-height: 1.3;
-      white-space: pre;
-      display: inline-block;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 17px; font-weight: 700; color: #fff;
+      text-decoration: none;
     }
+
+    .logo-icon {
+      width: 44px; height: 44px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+
+    .logo img {
+      height: 56px;
+      width: auto;
+      border-radius: 8px;
+      object-fit: contain;
+    }
+
+    .nav-links {
+      display: flex; align-items: center; gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 13.5px; color: rgba(255,255,255,0.85);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .nav-links a:hover { color: #fff; }
+
+    .nav-cta {
+      background: #fff;
+      color: #0891b2;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+      text-decoration: none;
+    }
+
+    .nav-cta:hover { background: #f0fdff; text-decoration: none; }
+
+    /* ── Sticky logo hero ── */
+    .logo-hero {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      background: #ffffff;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    .logo-bg {
+      width: min(170vw, 1920px);
+      max-width: none;
+      height: auto;
+      animation: floaty 7s ease-in-out infinite;
+      user-select: none;
+    }
+
+    @keyframes floaty {
+      0%,100% { transform: translateY(0); }
+      50%     { transform: translateY(-14px); }
+    }
+
+    /* ── Frosted scan layer that scrolls over the logo ── */
+    .scan-hero {
+      position: relative;
+      z-index: 2;
+      min-height: 100vh;
+      background: rgba(255,255,255,0.55);
+      backdrop-filter: blur(16px) saturate(140%);
+      -webkit-backdrop-filter: blur(16px) saturate(140%);
+      border-top: 1px solid rgba(255,255,255,0.6);
+      box-shadow: 0 -24px 70px rgba(8,145,178,0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 5rem 2rem;
+    }
+
+    /* Solid layer that fully covers the logo once it has scrolled away */
+    .content-layer {
+      position: relative;
+      z-index: 2;
+      background: #ffffff;
+    }
+
+    .scan-content {
+      width: 100%;
+      max-width: 560px;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .scan-content.in { opacity: 1; transform: translateY(0); }
+
+    .scan-content .hero-tag { justify-content: center; }
+    .scan-content .chips { justify-content: center; }
+    .scan-content form { margin: 0 auto; }
+
+    .hero-tag {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(14,165,233,0.08);
+      border: 1px solid rgba(14,165,233,0.2);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 12px;
+      color: var(--blue);
+      margin-bottom: 1.5rem;
+      font-weight: 500;
+    }
+
+    .hero-tag-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--blue);
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
     h1 {
-      font-size: 2.5rem;
+      font-size: 3rem;
       font-weight: 700;
-      letter-spacing: 0.15em;
-      background: linear-gradient(135deg, var(--green), var(--cyan));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 0.5rem;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 1.1rem;
     }
 
-    .subtitle {
+    h1 span { color: var(--blue); }
+
+    .hero-desc {
+      font-size: 15px;
       color: var(--muted);
-      font-size: 0.9rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      margin-bottom: 3rem;
+      line-height: 1.7;
+      margin-bottom: 2rem;
+      max-width: 480px;
     }
 
-    .form-wrap {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 2rem;
-      box-shadow: 0 0 40px rgba(0,255,136,0.05);
-    }
-
-
-    .input-group {
+    /* ── Search ── */
+    .search-wrap {
       display: flex;
-      gap: 0.75rem;
+      background: var(--navy3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
       margin-bottom: 1rem;
+      transition: border-color 0.2s;
+    }
+
+    .search-wrap:focus-within {
+      border-color: rgba(14,165,233,0.5);
+      box-shadow: 0 0 0 3px rgba(14,165,233,0.06);
     }
 
     input[type="text"] {
       flex: 1;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.85rem 1.25rem;
-      color: var(--text);
-      font-size: 1rem;
-      font-family: monospace;
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    input[type="text"]:focus {
-      border-color: var(--green);
-      box-shadow: 0 0 0 3px rgba(0,255,136,0.1);
-    }
-
-    input[type="text"]::placeholder { color: var(--muted); }
-
-    button[type="submit"] {
-      background: linear-gradient(135deg, var(--green), #00cc6a);
-      color: #0a0e1a;
+      background: transparent;
       border: none;
-      border-radius: 8px;
-      padding: 0.85rem 1.75rem;
-      font-size: 0.95rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
+      padding: 13px 18px;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+    }
+
+    input::placeholder { color: var(--dim); }
+
+    .scan-btn {
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      padding: 13px 24px;
+      font-size: 14px;
+      font-weight: 600;
       cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+      transition: background 0.15s;
       white-space: nowrap;
     }
 
-    button[type="submit"]:hover {
-      opacity: 0.9;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 20px rgba(0,255,136,0.3);
+    .scan-btn:hover { background: var(--blue2); }
+
+    .chips {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--dim);
     }
 
-    button[type="submit"]:active { transform: translateY(0); }
-
-    .examples {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      margin-top: 0.75rem;
-    }
-
-    .example-tag {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 0.25rem 0.6rem;
-      font-size: 0.75rem;
-      font-family: monospace;
+    .chip {
+      font-family: monospace; font-size: 11.5px;
       color: var(--muted);
+      background: var(--navy3);
+      border: 1px solid var(--border);
+      border-radius: 4px; padding: 3px 9px;
       cursor: pointer;
       transition: border-color 0.15s, color 0.15s;
     }
 
-    .example-tag:hover {
-      border-color: var(--cyan);
-      color: var(--cyan);
+    .chip:hover { border-color: rgba(14,165,233,0.4); color: var(--blue); }
+
+    /* ── Sections ── */
+    .section {
+      position: relative; z-index: 1;
+      padding: 4.5rem 2rem;
+      max-width: 1100px; margin: 0 auto; width: 100%;
+    }
+    .section-alt { background: var(--navy2); max-width: none; }
+    .section-alt .section-inner { max-width: 1100px; margin: 0 auto; }
+
+    .sec-eyebrow {
+      font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--blue);
+      text-align: center; margin-bottom: 0.6rem;
+    }
+    .sec-title {
+      font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em;
+      color: var(--text); text-align: center; margin-bottom: 0.75rem;
+    }
+    .sec-sub {
+      font-size: 15px; color: var(--muted); text-align: center;
+      max-width: 540px; margin: 0 auto 3rem;
     }
 
-    .disclaimer {
-      margin-top: 2rem;
-      font-size: 0.75rem;
-      color: var(--muted);
-      line-height: 1.6;
+    /* steps */
+    .steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.5rem; }
+    .step {
+      background: #fff; border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.75rem;
+      transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .step:hover {
+      border-color: #2f9fde;
+      transform: translateY(-4px);
+      box-shadow: 0 12px 28px rgba(47,159,222,0.16);
+    }
+    .step-num {
+      width: 36px; height: 36px; border-radius: 9px;
+      background: rgba(8,145,178,0.1); color: var(--cyan);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 15px; margin-bottom: 1rem;
+    }
+    .step h3 { font-size: 16px; color: var(--text); margin-bottom: 0.4rem; }
+    .step p  { font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+
+    /* stats band */
+    .stats-band {
+      display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem;
+      text-align: center;
+    }
+    .stat-big { font-size: 2.4rem; font-weight: 800; color: var(--cyan); letter-spacing: -0.02em; }
+    .stat-lbl { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    /* module grid */
+    .mods { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+    .mod {
+      background: #fff; border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px;
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+      cursor: default;
+    }
+    .mod:hover {
+      transform: translateY(-3px);
+      border-color: #2f9fde;
+      box-shadow: 0 8px 22px rgba(47,159,222,0.15);
+    }
+    .mod:hover .mod-dot { transform: scale(1.5); transition: transform 0.18s ease; }
+    .mod-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cyan); margin-bottom: 10px; }
+    .mod-name { font-size: 13.5px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+    .mod-src  { font-size: 11px; color: var(--dim); font-family: monospace; }
+
+    /* CTA */
+    .cta { text-align: center; }
+    .cta-btn {
+      display: inline-block; background: var(--cyan); color: #fff;
+      padding: 13px 32px; border-radius: 8px; font-size: 15px; font-weight: 600;
+      text-decoration: none; transition: background 0.15s;
+    }
+    .cta-btn:hover { background: #0e7490; }
+
+    @media (max-width: 800px) {
+      .steps, .stats-band, .mods { grid-template-columns: 1fr 1fr; }
     }
 
-    .disclaimer span { color: #f87171; }
-
-    .badge {
-      display: inline-block;
-      background: rgba(248,113,113,0.1);
-      border: 1px solid rgba(248,113,113,0.3);
-      color: #f87171;
-      font-size: 0.7rem;
-      padding: 0.2rem 0.5rem;
-      border-radius: 4px;
-      letter-spacing: 0.05em;
-      margin-bottom: 1rem;
+    footer {
+      position: relative; z-index: 1;
+      background: var(--navy2);
+      border-top: 1px solid var(--border);
+      padding: 14px 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--dim);
     }
 
-    .features {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.75rem;
-      margin-top: 2rem;
+    @media (max-width: 900px) {
+      .hero { flex-direction: column; padding: 2rem 1.5rem; text-align: center; }
+      .hero-right { display: none; }
+      h1 { font-size: 2.2rem; }
+      .chips { justify-content: center; }
+      nav { padding: 0 1.5rem; }
+      .nav-links { display: none; }
+      footer { padding: 14px 1.5rem; }
     }
-
-    .feature {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.75rem;
-      font-size: 0.75rem;
-      color: var(--muted);
-    }
-
-    .feature-icon { font-size: 1.1rem; margin-bottom: 0.25rem; }
-    .feature-name { color: var(--text); font-weight: 600; font-size: 0.8rem; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <pre class="logo">  ___  ____ ___ _  _ _____     _   ____ ____ _  _ _____
- / _ \/ ___|_ _| \| |_   _|   / \ / ___| ___| \| |_   _|
-| | | \___ \| ||  ` | | |    / _ \ |  _|  _| |  ` | | |
-| |_| |___) | || |\  | | |   / ___ \ |_| | |__| |\  | | |
- \___/|____/___|_| \_| |_|  /_/   \_\____|____|_| \_| |_|</pre>
 
-    <h1>OSINT AGENT</h1>
-    <p class="subtitle">Open Source Intelligence Platform</p>
+  <!-- Navigation -->
+  <nav>
+    <a href="/" class="logo">
+      {% if logo_exists %}
+      <img src="/static/logo.png" alt="logo"/>
+      {% else %}
+      <div class="logo-icon">🔎</div>
+      {% endif %}
+    </a>
 
-    <div class="form-wrap">
-      <div class="badge">⚠ Authorized Use Only</div>
+    <ul class="nav-links">
+      <li><a href="/">Scan</a></li>
+      <li><a href="/about">About</a></li>
+      <li><a href="/features">Features</a></li>
+      <li><a href="/api">API</a></li>
+      <li><a href="/docs">Docs</a></li>
+    </ul>
 
-      <form action="/scan" method="post">
-        <div class="input-group">
-          <input
-            type="text"
-            name="target"
-            placeholder="example.com  or  1.2.3.4  or  user@example.com"
-            autofocus
-            required
-          />
-          <button type="submit">SCAN →</button>
-        </div>
-        <div class="examples">
-          <span>Examples:</span>
-          <span class="example-tag" onclick="setTarget('github.com')">github.com</span>
-          <span class="example-tag" onclick="setTarget('8.8.8.8')">8.8.8.8</span>
-          <span class="example-tag" onclick="setTarget('tesla.com')">tesla.com</span>
-        </div>
-      </form>
+    <a href="/records" class="nav-cta">Records</a>
+  </nav>
 
-      <div class="features">
-        <div class="feature">
-          <div class="feature-icon">📡</div>
-          <div class="feature-name">DNS & WHOIS</div>
-          records, registrar
-        </div>
-        <div class="feature">
-          <div class="feature-icon">📧</div>
-          <div class="feature-name">Email Intel</div>
-          Hunter.io discovery
-        </div>
-        <div class="feature">
-          <div class="feature-icon">🌐</div>
-          <div class="feature-name">Subdomains</div>
-          crt.sh + Shodan
-        </div>
-        <div class="feature">
-          <div class="feature-icon">🔓</div>
-          <div class="feature-name">Breaches</div>
-          HIBP + BreachDir
-        </div>
-        <div class="feature">
-          <div class="feature-icon">🛡️</div>
-          <div class="feature-name">Threat Intel</div>
-          VirusTotal scan
-        </div>
-        <div class="feature">
-          <div class="feature-icon">🤖</div>
-          <div class="feature-name">AI Analysis</div>
-          Claude Sonnet
-        </div>
-      </div>
-    </div>
-
-    <p class="disclaimer">
-      Only scan targets you <span>own</span> or have <span>explicit written permission</span> to test.<br>
-      Unauthorized reconnaissance may violate CFAA, GDPR, and local laws.
-    </p>
+  <!-- Sticky logo hero -->
+  <div class="logo-hero">
+    <img class="logo-bg" src="/static/homepage.png" alt="نمائندہ"/>
   </div>
 
+  <!-- Frosted scan layer scrolls over the logo -->
+  <section class="scan-hero">
+      <div class="scan-content" id="scan-content">
+        <div class="hero-tag">
+          <span class="hero-tag-dot"></span>
+          نمائندہ · An Automated OSINT Platform
+        </div>
+
+        <h1>Intelligent<br><span>Reconnaissance</span><br>Automated.</h1>
+
+        <p class="hero-desc" style="margin-left:auto;margin-right:auto">
+          Enter a domain, IP address, or email. OSINT Agent runs 14 intelligence phases
+          covering DNS, subdomains, breaches, CVEs, and threat intel, then delivers a
+          Claude AI-powered risk report.
+        </p>
+
+        <form action="/scan" method="post">
+          <div class="search-wrap">
+            <input
+              type="text"
+              name="target"
+              placeholder="Enter domain, IP address, or email..."
+              required
+            />
+            <button type="submit" class="scan-btn">Scan →</button>
+          </div>
+        </form>
+
+        <div class="chips">
+          <span>Try:</span>
+          <span class="chip" onclick="setTarget('github.com')">github.com</span>
+          <span class="chip" onclick="setTarget('8.8.8.8')">8.8.8.8</span>
+          <span class="chip" onclick="setTarget('tesla.com')">tesla.com</span>
+        </div>
+      </div>
+  </section>
+
+  <!-- Solid content that fully covers the logo -->
+  <div class="content-layer">
+
+  <!-- How it works -->
+  <section class="section">
+    <p class="sec-eyebrow">How it works</p>
+    <h2 class="sec-title">Three steps to full intelligence</h2>
+    <p class="sec-sub">No setup, no commands. Just enter a target and read the report.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Enter a target</h3>
+        <p>Provide a domain, IP address, or email. The agent automatically detects the type and picks the right scan flow.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Agents go to work</h3>
+        <p>Specialized sub-agents run in sequence across dozens of data sources including DNS, breaches, CVEs, and threat feeds.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Get a risk report</h3>
+        <p>Findings are scored 0-10 and analyzed by Claude into an executive summary with prioritized recommendations.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats band -->
+  <section class="section-alt">
+    <div class="section-inner" style="padding:3.5rem 2rem">
+      <div class="stats-band">
+        <div><div class="stat-big">14</div><div class="stat-lbl">Intelligence phases</div></div>
+        <div><div class="stat-big">12+</div><div class="stat-lbl">Data sources</div></div>
+        <div><div class="stat-big">3</div><div class="stat-lbl">Input types</div></div>
+        <div><div class="stat-big">0-10</div><div class="stat-lbl">Risk scoring</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modules -->
+  <section class="section">
+    <p class="sec-eyebrow">Coverage</p>
+    <h2 class="sec-title">Every layer of the attack surface</h2>
+    <p class="sec-sub">Each module pulls from independent sources, then results are correlated into one picture.</p>
+    <div class="mods">
+      <div class="mod"><div class="mod-dot"></div><div class="mod-name">DNS &amp; WHOIS</div><div class="mod-src">dnspython</div></div>
+      <div class="mod"><div class="mod-dot"></div><div class="mod-name">Subdomains</div><div class="mod-src">crt.sh · OTX</div></div>
+      <div class="mod"><div class="mod-dot"></div><div class="mod-name">Email Discovery</div><div class="mod-src">Hunter.io</div></div>
+      <div class="mod"><div class="mod-dot"></div><div class="mod-name">Breach Check</div><div class="mod-src">BreachDirectory</div></div>
+      <div class="mod"><div class="mod-dot"></div><div class="mod-name">Geolocation</div><div class="mod-src">ip-api.com</div></div>
+      <div class="mod"><div class="mod-dot"></div><div class="mod-name">Port Scan</div><div class="mod-src">Shodan · socket</div></div>
+      <div class="mod"><div class="mod-dot"></div><div class="mod-name">Tech Stack</div><div class="mod-src">fingerprint</div></div>
+      <div class="mod"><div class="mod-dot"></div><div class="mod-name">SSL Certs</div><div class="mod-src">ssl</div></div>
+      <div class="mod"><div class="mod-dot"></div><div class="mod-name">CVE Lookup</div><div class="mod-src">NIST NVD</div></div>
+      <div class="mod"><div class="mod-dot"></div><div class="mod-name">Threat Intel</div><div class="mod-src">VirusTotal · URLhaus</div></div>
+      <div class="mod"><div class="mod-dot"></div><div class="mod-name">Paste Search</div><div class="mod-src">psbdmp · LeakIX</div></div>
+      <div class="mod"><div class="mod-dot"></div><div class="mod-name">AI Analysis</div><div class="mod-src">Claude Sonnet</div></div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section-alt">
+    <div class="section-inner" style="padding:4rem 2rem">
+      <p class="sec-eyebrow">Ready</p>
+      <h2 class="sec-title">Run your first scan</h2>
+      <p class="sec-sub">It takes a couple of minutes and everything is saved to your records.</p>
+      <div class="cta">
+        <a href="#" class="cta-btn" onclick="window.scrollTo({top:0,behavior:'smooth'});document.querySelector('input[name=target]').focus();return false;">Start scanning →</a>
+      </div>
+    </div>
+  </section>
+
+    <!-- Footer -->
+    <footer>
+      <span>© 2025 OSINT Agent · Authorized use only</span>
+      <span>14 intelligence phases · Claude AI powered</span>
+    </footer>
+
+  </div><!-- /content-layer -->
+
   <script>
-    function setTarget(val) {
-      document.querySelector('input[name="target"]').value = val;
+    function setTarget(v) { document.querySelector('input[name="target"]').value = v; }
+
+    // Reveal the scan content as it scrolls into view (re-triggers both directions)
+    const scanContent = document.getElementById('scan-content');
+    if (scanContent) {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) scanContent.classList.add('in');
+          else scanContent.classList.remove('in');
+        });
+      }, { threshold: 0.25 });
+      io.observe(scanContent);
     }
   </script>
 </body>

@@ -1,4 +1,4 @@
-"""Subdomain Enumeration Agent — crt.sh + HackerTarget + RapidDNS + wordlist brute-force."""
+"""Subdomain Enumeration Agent - crt.sh + HackerTarget + RapidDNS + wordlist brute-force."""
 import requests
 import dns.resolver
 from utils.api_client import crt_sh_subdomains

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OSINT Report — {{ domain }}</title>
+  <title>OSINT Report - {{ domain }}</title>
   <style>
     :root {
       --bg: #0d1117; --surface: #161b22; --border: #30363d;
@@ -79,7 +79,7 @@
     <tr>
       <td>{{ e.email }}</td>
       <td>{{ e.first_name }} {{ e.last_name }}</td>
-      <td>{{ e.position or '–' }}</td>
+      <td>{{ e.position or '-' }}</td>
       <td>
         <span class="badge {% if e.confidence >= 80 %}badge-ok{% elif e.confidence >= 50 %}badge-warn{% else %}badge-danger{% endif %}">
           {{ e.confidence }}%
@@ -100,7 +100,7 @@
     {% for s in subdomains %}
     <tr>
       <td>{{ s.subdomain }}</td>
-      <td>{{ s.ip or '–' }}</td>
+      <td>{{ s.ip or '-' }}</td>
       <td>
         {% if s.risk_flag %}
           <span class="badge badge-danger">RISKY</span>
@@ -124,7 +124,7 @@
     <tr>
       <td>{{ b.email }}</td>
       <td><span class="badge badge-danger">{{ b.breach_name }}</span></td>
-      <td>{{ b.breach_date or '–' }}</td>
+      <td>{{ b.breach_date or '-' }}</td>
     </tr>
     {% else %}
     <tr><td colspan="3">No breaches found</td></tr>

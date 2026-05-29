@@ -1,4 +1,4 @@
-"""Port Scanning Agent — Shodan host lookup with socket fallback."""
+"""Port Scanning Agent - Shodan host lookup with socket fallback."""
 import socket
 from utils.helpers import log_info, log_success, log_warn
 from config.settings import SHODAN_API_KEY
@@ -39,7 +39,7 @@ class PortAgent:
             if p in DANGEROUS_PORTS
         )
         log_success(
-            f"[PortAgent] Scan complete — {len(results)} hosts | {dangerous} dangerous port(s)"
+            f"[PortAgent] Scan complete - {len(results)} hosts | {dangerous} dangerous port(s)"
         )
         return results
 

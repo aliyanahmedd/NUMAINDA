@@ -18,10 +18,11 @@ from pathlib import Path
 from flask import Flask, Response, redirect, render_template, request, send_file, url_for
 
 from agents.orchestrator import OSINTOrchestrator
+from database.db import get_all_records, get_record_detail, insert_scan_files, get_scan_files
 from output.graph_visualizer import save_graph
 from output.report_generator import save_html_report, save_text_report, save_pdf_report
 
-app = Flask(__name__, template_folder="templates")
+app = Flask(__name__, template_folder="templates", static_folder="static")
 
 # In-memory scan store: scan_id -> {queue, findings, error, done, target, graph_path, report_path}
 _scans: dict = {}
@@ -51,6 +52,16 @@ def _run_scan(scan_id: str, target: str):
         _scans[scan_id]["graph_path"] = str(graph_path)
         _scans[scan_id]["pdf_path"] = str(pdf_path) if pdf_path else None
 
+        target_id = findings.get("target_id")
+        if target_id:
+            insert_scan_files(
+                target_id,
+                graph_path=str(graph_path),
+                html_path=str(html_path),
+                txt_path=str(txt_path),
+                json_path=str(json_path),
+            )
+
         json_path = txt_path.with_suffix(".json")
         serializable = {k: v for k, v in findings.items() if isinstance(v, (str, int, float, list, dict))}
         json_path.write_text(json.dumps(serializable, indent=2, default=str), encoding="utf-8")
@@ -69,7 +80,73 @@ def _run_scan(scan_id: str, target: str):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    static = Path("static")
+    return render_template(
+        "index.html",
+        logo_exists=(static / "logo.png").exists(),
+        hero_exists=(static / "hero.png").exists(),
+    )
+
+
+@app.route("/about")
+def about_page():
+    return render_template("page.html", page="about")
+
+
+@app.route("/features")
+def features_page():
+    return render_template("page.html", page="features")
+
+
+@app.route("/api")
+def api_page():
+    return render_template("page.html", page="api")
+
+
+@app.route("/docs")
+def docs_page():
+    return render_template("page.html", page="docs")
+
+
+@app.route("/records")
+def records_page():
+    records = get_all_records()
+    return render_template("records.html", records=records)
+
+
+@app.route("/records/<int:target_id>")
+def record_detail(target_id: int):
+    data = get_record_detail(target_id)
+    if not data:
+        return redirect(url_for("records_page"))
+    files = get_scan_files(target_id)
+    return render_template(
+        "results.html",
+        scan_id=f"db-{target_id}",
+        target=data.get("input", ""),
+        findings=data,
+        has_pdf=False,
+        db_files=files,
+    )
+
+
+@app.route("/records/<int:target_id>/graph")
+def record_graph(target_id: int):
+    files = get_scan_files(target_id)
+    path = files.get("graph_path")
+    if not path or not Path(path).exists():
+        return "Graph not found", 404
+    return send_file(path)
+
+
+@app.route("/records/<int:target_id>/download/<filetype>")
+def record_download(target_id: int, filetype: str):
+    files = get_scan_files(target_id)
+    key_map = {"html": "html_path", "txt": "txt_path", "json": "json_path"}
+    path = files.get(key_map.get(filetype, ""))
+    if not path or not Path(path).exists():
+        return "File not found", 404
+    return send_file(path, as_attachment=True)
 
 
 @app.route("/scan", methods=["POST"])

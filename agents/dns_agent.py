@@ -1,4 +1,4 @@
-"""DNS & IP Intelligence Agent — WHOIS, A/MX/TXT/NS records."""
+"""DNS & IP Intelligence Agent - WHOIS, A/MX/TXT/NS records."""
 import whois
 import dns.resolver
 from utils.helpers import log_info, log_success, log_warn

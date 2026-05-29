@@ -1,4 +1,4 @@
-"""Paste Search Agent — searches multiple paste indexers for domain/email leaks."""
+"""Paste Search Agent - searches multiple paste indexers for domain/email leaks."""
 import requests
 from utils.helpers import log_info, log_success, log_warn
 from config.settings import REQUEST_TIMEOUT
@@ -28,7 +28,7 @@ class PasteAgent:
 
     @staticmethod
     def _psbdmp(keyword: str, seen: set) -> list[dict]:
-        """psbdmp.ws — indexes Pastebin pastes."""
+        """psbdmp.ws - indexes Pastebin pastes."""
         try:
             r = requests.get(
                 f"https://psbdmp.ws/api/v3/search/{keyword}",
@@ -60,7 +60,7 @@ class PasteAgent:
 
     @staticmethod
     def _leakix(keyword: str, seen: set) -> list[dict]:
-        """LeakIX — indexes exposed services and leaks (free, no key for basic search)."""
+        """LeakIX - indexes exposed services and leaks (free, no key for basic search)."""
         try:
             r = requests.get(
                 "https://leakix.net/search",

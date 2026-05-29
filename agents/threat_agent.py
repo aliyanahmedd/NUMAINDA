@@ -1,4 +1,4 @@
-"""Threat Intelligence Agent — VirusTotal + URLhaus + ThreatFox + AbuseIPDB."""
+"""Threat Intelligence Agent - VirusTotal + URLhaus + ThreatFox + AbuseIPDB."""
 import requests
 from utils.api_client import virustotal_check_domain, virustotal_check_ip
 from utils.helpers import log_info, log_success, log_warn
@@ -11,15 +11,15 @@ class ThreatAgent:
         log_info("[ThreatAgent] Running multi-source threat checks")
         findings = []
 
-        # ── VirusTotal — domain ───────────────────────────────────────────────
+        # ── VirusTotal - domain ───────────────────────────────────────────────
         vt = self._vt_domain(domain)
         if vt: findings.append(vt)
 
-        # ── URLhaus — domain (free, no key) ───────────────────────────────────
+        # ── URLhaus - domain (free, no key) ───────────────────────────────────
         uh = self._urlhaus(domain)
         if uh: findings.append(uh)
 
-        # ── ThreatFox — domain (free, no key) ─────────────────────────────────
+        # ── ThreatFox - domain (free, no key) ─────────────────────────────────
         tf = self._threatfox(domain)
         if tf: findings.append(tf)
 

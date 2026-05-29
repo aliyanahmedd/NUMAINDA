@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Results: {{ target }} — OSINT Agent</title>
+  <title>Results: {{ target }} | OSINT Agent</title>
   {% if findings.get('scan_type') == 'ip' %}
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -12,24 +12,24 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0a0e1a;
-      --bg2: #0d1117;
-      --card: #111827;
-      --card2: #0f172a;
-      --border: #1e2d40;
-      --green: #00ff88;
-      --cyan: #00ccff;
+      --bg: #0e0e10;
+      --bg2: #18181b;
+      --card: #18181b;
+      --card2: #1c1c1f;
+      --border: #27272a;
+      --green: #4ade80;
+      --cyan: #60a5fa;
       --yellow: #fbbf24;
       --red: #f87171;
       --orange: #fb923c;
-      --text: #e2e8f0;
-      --muted: #64748b;
+      --text: #e4e4e7;
+      --muted: #71717a;
     }
 
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       min-height: 100vh;
     }
 
@@ -38,9 +38,10 @@
 
     /* ── Topbar ── */
     .topbar {
-      background: var(--bg2);
-      border-bottom: 1px solid var(--border);
-      padding: 1rem 2rem;
+      background: #2f9fde;
+      border-bottom: 1px solid rgba(0,0,0,0.12);
+      padding: 0 2rem;
+      height: 72px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -52,21 +53,27 @@
     .topbar-left { display: flex; align-items: center; gap: 1rem; }
 
     .logo-text {
-      font-family: monospace;
       font-weight: 700;
-      color: var(--green);
-      font-size: 1rem;
-      letter-spacing: 0.1em;
+      color: #fff;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-text img {
+      height: 56px; width: auto;
+      border-radius: 7px; object-fit: contain;
     }
 
     .target-chip {
-      background: rgba(0,255,136,0.08);
-      border: 1px solid rgba(0,255,136,0.2);
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
       border-radius: 6px;
-      padding: 0.3rem 0.75rem;
+      padding: 0.25rem 0.7rem;
       font-family: monospace;
-      font-size: 0.85rem;
-      color: var(--green);
+      font-size: 0.82rem;
+      color: #fff;
     }
 
     .topbar-right { display: flex; gap: 0.75rem; align-items: center; }
@@ -89,19 +96,19 @@
 
     .btn-ghost {
       background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text);
+      border: 1px solid #3f3f46;
+      color: #a1a1aa;
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--green), #00cc6a);
-      color: #0a0e1a;
+      background: #f4f4f5;
+      color: #09090b;
     }
 
     .btn-cyan {
-      background: rgba(0,204,255,0.1);
-      border: 1px solid rgba(0,204,255,0.3);
-      color: var(--cyan);
+      background: #1e3a5f;
+      border: 1px solid #1e40af;
+      color: #93c5fd;
     }
 
     /* ── Main layout ── */
@@ -189,20 +196,20 @@
     }
 
     .card-header {
-      padding: 0.85rem 1.25rem;
+      padding: 0.75rem 1rem;
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: #0f172a;
+      background: #1c1c1f;
     }
 
     .card-title {
-      font-size: 0.8rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
-      color: var(--muted);
+      color: #a1a1aa;
       display: flex;
       align-items: center;
       gap: 0.5rem;
@@ -210,22 +217,23 @@
 
     .card-title span { color: var(--text); }
     .count-badge {
-      background: var(--bg);
-      border: 1px solid var(--border);
+      background: #27272a;
+      border: 1px solid #3f3f46;
       border-radius: 4px;
       padding: 0.15rem 0.5rem;
       font-family: monospace;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
+      color: #a1a1aa;
     }
 
     .card-body { padding: 1.25rem; }
 
     /* ── Table ── */
     .tbl { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-    .tbl th { text-align: left; padding: 0.4rem 0.75rem; color: var(--muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); }
-    .tbl td { padding: 0.55rem 0.75rem; border-bottom: 1px solid rgba(30,45,64,0.5); font-family: monospace; font-size: 0.8rem; }
+    .tbl th { text-align: left; padding: 0.4rem 0.75rem; color: #52525b; font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); }
+    .tbl td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #27272a; font-size: 0.8rem; }
     .tbl tr:last-child td { border-bottom: none; }
-    .tbl tr:hover td { background: rgba(255,255,255,0.02); }
+    .tbl tr:hover td { background: rgba(255,255,255,0.015); }
 
     .risk-flag {
       display: inline-block;
@@ -243,11 +251,11 @@
     /* ── Tech badges ── */
     .tech-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .tech-badge {
-      background: rgba(0,204,255,0.08);
-      border: 1px solid rgba(0,204,255,0.2);
-      color: var(--cyan);
-      padding: 0.3rem 0.7rem;
-      border-radius: 6px;
+      background: #27272a;
+      border: 1px solid #3f3f46;
+      color: #a1a1aa;
+      padding: 0.25rem 0.65rem;
+      border-radius: 5px;
       font-size: 0.78rem;
       font-family: monospace;
     }
@@ -303,13 +311,23 @@
   <!-- Topbar -->
   <nav class="topbar">
     <div class="topbar-left">
-      <span class="logo-text">OSINT AGENT</span>
+      <a href="/" style="text-decoration:none">
+        <span class="logo-text">
+          <img src="/static/logo.png" alt="logo"/>
+          OSINT Agent
+        </span>
+      </a>
       <span class="target-chip">{{ target }}</span>
     </div>
     <div class="topbar-right">
-      <a href="/scan/{{ scan_id }}/graph" class="btn btn-cyan" target="_blank">🕸 Network Graph</a>
-      <a href="/scan/{{ scan_id }}/download/html" class="btn btn-ghost">↓ HTML Report</a>
-      <a href="/scan/{{ scan_id }}/download/json" class="btn btn-ghost">↓ JSON</a>
+      <a href="/records" class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,0.3)">Records</a>
+      {% if scan_id.startswith('db-') %}
+      <a href="/records/{{ scan_id[3:] }}/graph" class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,0.3)" target="_blank">🕸 Graph</a>
+      <a href="/records/{{ scan_id[3:] }}/download/html" class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,0.3)">↓ Report</a>
+      {% else %}
+      <a href="/scan/{{ scan_id }}/graph" class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,0.3)" target="_blank">🕸 Graph</a>
+      <a href="/scan/{{ scan_id }}/download/html" class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,0.3)">↓ Report</a>
+      {% endif %}
       <a href="/" class="btn btn-primary">+ New Scan</a>
     </div>
   </nav>
@@ -355,9 +373,9 @@
           <tbody>
             {% for r in repos %}
             <tr>
-              <td><a href="{{ r.get('url','#') }}" target="_blank">{{ r.get('name','—') }}</a></td>
+              <td><a href="{{ r.get('url','#') }}" target="_blank">{{ r.get('name','-') }}</a></td>
               <td style="color:var(--yellow)">★ {{ r.get('stars',0) }}</td>
-              <td style="color:var(--muted)">{{ r.get('language','—') }}</td>
+              <td style="color:var(--muted)">{{ r.get('language','-') }}</td>
               <td style="color:var(--muted);font-size:0.75rem">{{ r.get('description','') }}</td>
             </tr>
             {% endfor %}
@@ -397,7 +415,7 @@
         <div class="stat-label">Dangerous Ports</div>
       </div>
       <div class="stat-card">
-        <div class="stat-num" style="color:var(--yellow);font-size:1rem">{{ geo[0].get('country','—') if geo else '—' }}</div>
+        <div class="stat-num" style="color:var(--yellow);font-size:1rem">{{ geo[0].get('country','-') if geo else '-' }}</div>
         <div class="stat-label">Country</div>
       </div>
     </div>
@@ -407,13 +425,13 @@
         <div class="card-header"><span class="card-title">📡 IP Intelligence</span></div>
         <div class="card-body">
           <div class="dns-kv">
-            <span class="dns-key">IP Address</span><span class="dns-val">{{ ip_data.get('ip','—') }}</span>
+            <span class="dns-key">IP Address</span><span class="dns-val">{{ ip_data.get('ip','-') }}</span>
             <span class="dns-key">Hostname</span><span class="dns-val">{{ ip_data.get('hostname') or 'No reverse DNS' }}</span>
-            <span class="dns-key">Org</span><span class="dns-val">{{ ip_data.get('whois',{}).get('org','—') }}</span>
-            <span class="dns-key">Country</span><span class="dns-val">{{ ip_data.get('whois',{}).get('country','—') }}</span>
+            <span class="dns-key">Org</span><span class="dns-val">{{ ip_data.get('whois',{}).get('org','-') }}</span>
+            <span class="dns-key">Country</span><span class="dns-val">{{ ip_data.get('whois',{}).get('country','-') }}</span>
             {% if geo %}
-            <span class="dns-key">City</span><span class="dns-val">{{ geo[0].get('city','—') }}</span>
-            <span class="dns-key">ISP</span><span class="dns-val">{{ geo[0].get('isp','—') }}</span>
+            <span class="dns-key">City</span><span class="dns-val">{{ geo[0].get('city','-') }}</span>
+            <span class="dns-key">ISP</span><span class="dns-val">{{ geo[0].get('isp','-') }}</span>
             {% endif %}
           </div>
         </div>
@@ -430,7 +448,7 @@
               {% set is_dangerous = p in [21,22,23,3389,445,6379,27017,9200] %}
               <tr>
                 <td style="font-family:monospace">{{ p }}</td>
-                <td style="color:var(--muted)">{{ host.get('services',{}).get(p|string, '—') }}</td>
+                <td style="color:var(--muted)">{{ host.get('services',{}).get(p|string, '-') }}</td>
                 <td>{% if is_dangerous %}<span class="malicious-tag">DANGEROUS</span>{% else %}<span class="clean-tag">NORMAL</span>{% endif %}</td>
               </tr>
               {% endfor %}
@@ -466,9 +484,9 @@
       </div>
       <div class="card-body" style="padding:0.75rem 1.25rem">
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;font-size:0.82rem">
-          <div><span style="color:var(--muted)">City</span><br><span style="font-family:monospace;color:var(--text)">{{ g.get('city','—') }}</span></div>
-          <div><span style="color:var(--muted)">Country</span><br><span style="font-family:monospace;color:var(--text)">{{ g.get('country','—') }} ({{ g.get('country_code','') }})</span></div>
-          <div><span style="color:var(--muted)">ISP / Org</span><br><span style="font-family:monospace;color:var(--text)">{{ g.get('isp') or g.get('org','—') }}</span></div>
+          <div><span style="color:var(--muted)">City</span><br><span style="font-family:monospace;color:var(--text)">{{ g.get('city','-') }}</span></div>
+          <div><span style="color:var(--muted)">Country</span><br><span style="font-family:monospace;color:var(--text)">{{ g.get('country','-') }} ({{ g.get('country_code','') }})</span></div>
+          <div><span style="color:var(--muted)">ISP / Org</span><br><span style="font-family:monospace;color:var(--text)">{{ g.get('isp') or g.get('org','-') }}</span></div>
           <div><span style="color:var(--muted)">Latitude</span><br><span style="font-family:monospace;color:var(--cyan)">{{ g.lat }}</span></div>
           <div><span style="color:var(--muted)">Longitude</span><br><span style="font-family:monospace;color:var(--cyan)">{{ g.lon }}</span></div>
           <div><span style="color:var(--muted)">IP</span><br><span style="font-family:monospace;color:var(--green)">{{ g.ip }}</span></div>
@@ -581,7 +599,7 @@
         <h2>Intelligence Report: {{ findings.get('domain', target) }}</h2>
         <p>
           {% if total >= 7 %}High risk attack surface detected.
-          {% elif total >= 4 %}Moderate risk — review flagged findings.
+          {% elif total >= 4 %}Moderate risk. Review flagged findings.
           {% else %}Low risk profile.{% endif %}
         </p>
 
@@ -643,8 +661,8 @@
               {% for e in emails[:15] %}
               <tr>
                 <td>{{ e.email }}</td>
-                <td style="color:var(--muted)">{{ e.get('position','—') }}</td>
-                <td class="confidence">{{ e.get('confidence', '—') }}%</td>
+                <td style="color:var(--muted)">{{ e.get('position','-') }}</td>
+                <td class="confidence">{{ e.get('confidence', '-') }}%</td>
               </tr>
               {% endfor %}
               {% if emails | length > 15 %}
@@ -674,7 +692,7 @@
                   {{ s.subdomain }}
                   {% if s.get('risk_flag') %}<span class="risk-flag">RISKY</span>{% endif %}
                 </td>
-                <td style="color:var(--muted)">{{ s.get('ip', '—') }}</td>
+                <td style="color:var(--muted)">{{ s.get('ip', '-') }}</td>
               </tr>
               {% endfor %}
               {% if subdomains | length > 20 %}
@@ -706,7 +724,7 @@
               <tr>
                 <td>{{ b.email }}</td>
                 <td style="color:var(--red)">{{ b.breach_name }}</td>
-                <td style="color:var(--muted)">{{ b.get('breach_date','—') }}</td>
+                <td style="color:var(--muted)">{{ b.get('breach_date','-') }}</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -737,7 +755,7 @@
                   <span class="clean-tag">CLEAN</span>
                   {% endif %}
                 </td>
-                <td style="color:var(--muted)">{{ t.get('engine_hits', '—') }}</td>
+                <td style="color:var(--muted)">{{ t.get('engine_hits', '-') }}</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -775,7 +793,7 @@
             {% endif %}
             {% for rec in dns.get('records', [])[:6] %}
             <span class="dns-key">{{ rec.get('record_type','REC') }}</span>
-            <span class="dns-val">{{ rec.get('value','—') }}</span>
+            <span class="dns-val">{{ rec.get('value','-') }}</span>
             {% endfor %}
           </div>
           {% else %}
@@ -807,16 +825,16 @@
             </div>
             {% else %}
             <div style="background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.2);border-radius:6px;padding:0.75rem;margin-bottom:0.75rem;color:var(--green);font-size:0.82rem;">
-              ✓ Valid — {{ main_cert.get('days_left') }} days remaining
+              ✓ Valid for {{ main_cert.get('days_left') }} days
             </div>
             {% endif %}
           <div class="dns-kv">
             <span class="dns-key">Expires</span>
-            <span class="dns-val">{{ main_cert.get('expires','—') }}</span>
+            <span class="dns-val">{{ main_cert.get('expires','-') }}</span>
             <span class="dns-key">Issuer</span>
-            <span class="dns-val">{{ main_cert.get('issuer','—') }}</span>
+            <span class="dns-val">{{ main_cert.get('issuer','-') }}</span>
             <span class="dns-key">Subject</span>
-            <span class="dns-val">{{ main_cert.get('subject','—') }}</span>
+            <span class="dns-val">{{ main_cert.get('subject','-') }}</span>
             {% if main_cert.get('sans') %}
             <span class="dns-key">SANs</span>
             <span class="dns-val">{{ main_cert.get('sans', [])|join(', ') }}</span>
@@ -851,7 +869,7 @@
                       {{ cve.severity }}
                     </span>
                   </td>
-                  <td style="font-family:monospace">{{ cve.score or '—' }}</td>
+                  <td style="font-family:monospace">{{ cve.score or '-' }}</td>
                 </tr>
                 {% endfor %}
               {% endfor %}
@@ -917,10 +935,10 @@
               <tr>
                 <td style="font-family:monospace;font-size:0.78rem">{{ g.ip }}</td>
                 <td>
-                  {{ g.get('city','') }}{% if g.get('city') and g.get('country') %}, {% endif %}{{ g.get('country','—') }}
+                  {{ g.get('city','') }}{% if g.get('city') and g.get('country') %}, {% endif %}{{ g.get('country','-') }}
                   {% if g.get('country_code') %}<span style="color:var(--muted);font-size:0.72rem"> ({{ g.country_code }})</span>{% endif %}
                 </td>
-                <td style="color:var(--muted);font-size:0.75rem">{{ g.get('org') or g.get('isp','—') }}</td>
+                <td style="color:var(--muted);font-size:0.75rem">{{ g.get('org') or g.get('isp','-') }}</td>
                 <td>
                   {% if g.get('lat') and g.get('lon') %}
                   <button
@@ -955,8 +973,8 @@
               {% for p in pastes[:8] %}
               <tr>
                 <td><a href="{{ p.url }}" target="_blank">{{ p.id }}</a></td>
-                <td style="color:var(--yellow);font-size:0.75rem">{{ p.get('keyword','—') }}</td>
-                <td style="color:var(--muted);font-size:0.75rem">{{ p.get('date','—') }}</td>
+                <td style="color:var(--yellow);font-size:0.75rem">{{ p.get('keyword','-') }}</td>
+                <td style="color:var(--muted);font-size:0.75rem">{{ p.get('date','-') }}</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -1010,9 +1028,9 @@
             <tbody>
               {% for r in repos[:8] %}
               <tr>
-                <td><a href="{{ r.get('url','#') }}" target="_blank">{{ r.get('name','—') }}</a></td>
+                <td><a href="{{ r.get('url','#') }}" target="_blank">{{ r.get('name','-') }}</a></td>
                 <td style="color:var(--yellow)">★ {{ r.get('stars', 0) }}</td>
-                <td style="color:var(--muted)">{{ r.get('language','—') }}</td>
+                <td style="color:var(--muted)">{{ r.get('language','-') }}</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -1042,14 +1060,16 @@
     </div>
 
     {# ── Actions ── #}
+    {% set is_db = scan_id.startswith('db-') %}
+    {% set base = '/records/' + scan_id[3:] if is_db else '/scan/' + scan_id %}
     <div style="display:flex;gap:1rem;justify-content:center;padding-bottom:3rem;flex-wrap:wrap">
-      <a href="/scan/{{ scan_id }}/graph" class="btn btn-cyan" target="_blank">🕸 Open Network Graph</a>
-      {% if has_pdf %}
-      <a href="/scan/{{ scan_id }}/download/pdf" class="btn btn-primary">↓ Download PDF Report</a>
+      <a href="{{ base }}/graph" class="btn btn-cyan" target="_blank">🕸 Open Network Graph</a>
+      {% if has_pdf and not is_db %}
+      <a href="{{ base }}/download/pdf" class="btn btn-primary">↓ Download PDF</a>
       {% endif %}
-      <a href="/scan/{{ scan_id }}/download/html" class="btn btn-ghost">↓ Download HTML Report</a>
-      <a href="/scan/{{ scan_id }}/download/txt" class="btn btn-ghost">↓ Download Text Report</a>
-      <a href="/scan/{{ scan_id }}/download/json" class="btn btn-ghost">↓ Download JSON</a>
+      <a href="{{ base }}/download/html" class="btn btn-ghost">↓ HTML Report</a>
+      <a href="{{ base }}/download/txt" class="btn btn-ghost">↓ Text Report</a>
+      <a href="{{ base }}/download/json" class="btn btn-ghost">↓ JSON</a>
       <a href="/" class="btn btn-primary">+ New Scan</a>
     </div>
 

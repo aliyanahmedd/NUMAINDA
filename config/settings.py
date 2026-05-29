@@ -28,6 +28,6 @@ DATABASE_PATH = BASE_DIR / "database" / "osint.db"
 REPORTS_DIR = BASE_DIR / "output" / "reports"
 GRAPHS_DIR = BASE_DIR / "output" / "graphs"
 
-# Risk thresholds (0–10 scale)
+# Risk thresholds (0-10 scale)
 RISK_HIGH = 7.0
 RISK_MEDIUM = 4.0

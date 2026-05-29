@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Scan Records | OSINT Agent</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:   #060d1f;
+      --navy2:  #0b1530;
+      --navy3:  #0f1f42;
+      --border: #152040;
+      --blue:   #0ea5e9;
+      --cyan:   #06b6d4;
+      --text:   #e2eaf5;
+      --muted:  #7a92b4;
+      --dim:    #2d4266;
+      --red:    #f87171;
+      --yellow: #fbbf24;
+      --green:  #4ade80;
+    }
+
+    body {
+      background: var(--navy);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+    }
+
+    nav {
+      background: #2f9fde;
+      border-bottom: 1px solid rgba(0,0,0,0.15);
+      padding: 0 2.5rem;
+      height: 72px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .nav-left { display: flex; align-items: center; gap: 10px; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo img { height: 56px; width: auto; border-radius: 8px; object-fit: contain; }
+    .logo span { font-size: 16px; font-weight: 700; color: #fff; }
+    .nav-right { display: flex; gap: 0.75rem; align-items: center; }
+
+    .btn {
+      padding: 7px 16px; border-radius: 6px; font-size: 13px;
+      font-weight: 600; cursor: pointer; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 6px;
+      border: none; transition: opacity 0.15s;
+    }
+
+    .btn:hover { opacity: 0.88; text-decoration: none; }
+    .btn-white { background: #fff; color: var(--cyan); }
+    .btn-outline { background: transparent; border: 1px solid rgba(255,255,255,0.4); color: #fff; }
+
+    /* ── Page ── */
+    .page { flex: 1; padding: 2rem 2.5rem; max-width: 1200px; margin: 0 auto; width: 100%; }
+
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1.75rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .page-title { font-size: 18px; font-weight: 600; color: var(--text); }
+    .page-sub   { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+    /* ── Table ── */
+    .table-wrap {
+      background: var(--navy2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    thead { background: #0a1220; }
+
+    th {
+      padding: 11px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 14px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(21,32,64,0.6);
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(14,165,233,0.03); }
+
+    .target-cell { font-family: monospace; font-size: 13px; color: var(--text); font-weight: 500; }
+
+    .type-badge {
+      display: inline-block;
+      padding: 2px 8px; border-radius: 4px;
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+
+    .type-domain  { background: rgba(14,165,233,0.12); color: #7dd3fc; }
+    .type-ip      { background: rgba(168,85,247,0.12); color: #d8b4fe; }
+    .type-email   { background: rgba(34,197,94,0.12);  color: #86efac; }
+
+    .score-cell { font-family: monospace; font-weight: 700; font-size: 14px; }
+    .score-high   { color: var(--red); }
+    .score-medium { color: var(--yellow); }
+    .score-low    { color: var(--green); }
+
+    .stat { color: var(--muted); font-size: 12px; }
+    .stat span { color: var(--text); font-weight: 600; margin-right: 10px; }
+
+    .date-cell { color: var(--muted); font-size: 12px; font-family: monospace; }
+
+    .btn-detail {
+      background: var(--navy3);
+      border: 1px solid var(--border);
+      color: var(--blue);
+      padding: 5px 14px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color 0.15s, background 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-detail:hover {
+      border-color: var(--blue);
+      background: rgba(14,165,233,0.08);
+      text-decoration: none;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--muted);
+    }
+
+    .empty h3 { font-size: 16px; color: var(--text); margin-bottom: 0.5rem; }
+    .empty p  { font-size: 13px; }
+
+    footer {
+      padding: 12px 2.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--dim);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="nav-left">
+      <a href="/" class="logo">
+        <img src="/static/logo.png" alt="logo"/>
+        <span>OSINT Agent</span>
+      </a>
+    </div>
+    <div class="nav-right">
+      <a href="/records" class="btn btn-outline">Records</a>
+      <a href="/" class="btn btn-white">+ New Scan</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Scan Records</h1>
+        <p class="page-sub">{{ records|length }} scan{{ 's' if records|length != 1 }} in database</p>
+      </div>
+      <a href="/" class="btn btn-outline" style="background:rgba(14,165,233,0.1);border-color:rgba(14,165,233,0.3);color:var(--blue)">
+        + New Scan
+      </a>
+    </div>
+
+    {% if records %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Target</th>
+            <th>Type</th>
+            <th>Risk Score</th>
+            <th>Findings</th>
+            <th>Scanned At</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in records %}
+          {% set score = r.total_score or 0 %}
+          <tr>
+            <td class="target-cell">{{ r.input }}</td>
+
+            <td>
+              <span class="type-badge type-{{ r.input_type }}">{{ r.input_type }}</span>
+            </td>
+
+            <td>
+              {% if r.total_score is not none %}
+              <span class="score-cell {{ 'score-high' if score >= 7 else ('score-medium' if score >= 4 else 'score-low') }}">
+                {{ "%.1f"|format(score) }}
+              </span>
+              <span style="color:var(--dim);font-size:11px"> /10</span>
+              {% else %}
+              <span style="color:var(--dim)">-</span>
+              {% endif %}
+            </td>
+
+            <td class="stat">
+              <span>{{ r.email_count }} emails</span>
+              <span>{{ r.subdomain_count }} subdomains</span>
+              <span>{{ r.breach_count }} breaches</span>
+              {% if r.threat_count > 0 %}
+              <span style="color:var(--red)">{{ r.threat_count }} threats</span>
+              {% endif %}
+            </td>
+
+            <td class="date-cell">{{ r.created_at[:16] if r.created_at else '-' }}</td>
+
+            <td>
+              <a href="/records/{{ r.id }}" class="btn-detail">View Details →</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% else %}
+    <div class="empty">
+      <h3>No records yet</h3>
+      <p>Run a scan to see results stored here.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <footer>OSINT Agent · scan history is stored locally in SQLite</footer>
+
+</body>
+</html>

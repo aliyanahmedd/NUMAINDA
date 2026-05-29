@@ -1,4 +1,4 @@
-"""Username OSINT Agent — checks username existence across major platforms concurrently.
+"""Username OSINT Agent - checks username existence across major platforms concurrently.
 
 Only platforms where existence can be reliably determined without JavaScript rendering
 or authentication are included. SPAs (Twitch, Kaggle, TikTok, YouTube, Instagram,
@@ -12,13 +12,13 @@ from utils.helpers import log_info, log_success, log_warn
 # (display_name, url_template, check_type, check_value)
 #
 # check_type:
-#   "status"        — found if HTTP 200, not found if HTTP == check_value (404)
-#   "not_in"        — found if check_value string is NOT in response body (case-insensitive)
-#   "json_null"     — found if response body is not "null" / empty
-#   "title_has"     — found if username appears in <title> tag (case-insensitive)
+#   "status"        - found if HTTP 200, not found if HTTP == check_value (404)
+#   "not_in"        - found if check_value string is NOT in response body (case-insensitive)
+#   "json_null"     - found if response body is not "null" / empty
+#   "title_has"     - found if username appears in <title> tag (case-insensitive)
 
 PLATFORMS = [
-    # Server-side rendered — 404 is definitive
+    # Server-side rendered - 404 is definitive
     ("GitHub",      "https://github.com/{}",                               "status",    404),
     ("Dev.to",      "https://dev.to/{}",                                   "status",    404),
     ("Keybase",     "https://keybase.io/{}",                               "status",    404),
@@ -28,11 +28,11 @@ PLATFORMS = [
     ("Dribbble",    "https://dribbble.com/{}",                             "status",    404),
     ("Pastebin",    "https://pastebin.com/u/{}",                           "status",    404),
     ("Fiverr",      "https://www.fiverr.com/{}",                           "status",    404),
-    # JSON API — null body means user doesn't exist
+    # JSON API - null body means user doesn't exist
     ("HackerNews",  "https://hacker-news.firebaseio.com/v0/user/{}.json",  "json_null", None),
-    # Content checks — platform returns 200 but body reveals existence
+    # Content checks - platform returns 200 but body reveals existence
     ("Steam",       "https://steamcommunity.com/id/{}",                    "not_in",    "The specified profile could not be found"),
-    # Title checks — username in <title> only when profile exists
+    # Title checks - username in <title> only when profile exists
     ("GitLab",      "https://gitlab.com/{}",                               "title_has", None),
     ("npm",         "https://www.npmjs.com/~{}",                           "title_has", None),
     ("CodePen",     "https://codepen.io/{}",                               "title_has", None),
@@ -40,7 +40,7 @@ PLATFORMS = [
     ("Reddit",      "https://www.reddit.com/user/{}/about.json",           "status",    404),
 ]
 
-# Cloudflare challenge page indicators — treat as "unknown" to avoid false positives
+# Cloudflare challenge page indicators - treat as "unknown" to avoid false positives
 _CF_INDICATORS = ("just a moment", "client challenge", "_cf_chl", "cf-browser-verification")
 
 _HEADERS = {

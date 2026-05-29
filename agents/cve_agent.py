@@ -1,4 +1,4 @@
-"""CVE Lookup Agent — queries NIST NVD API for known vulnerabilities in detected tech."""
+"""CVE Lookup Agent - queries NIST NVD API for known vulnerabilities in detected tech."""
 import time
 import requests
 from utils.helpers import log_info, log_success, log_warn

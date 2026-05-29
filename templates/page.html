@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{{ page|capitalize }} | OSINT Agent</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:   #ffffff;
+      --navy2:  #f8fafc;
+      --navy3:  #f1f5f9;
+      --border: #e2e8f0;
+      --blue:   #0284c7;
+      --cyan:   #06b6d4;
+      --text:   #0f172a;
+      --muted:  #475569;
+      --dim:    #94a3b8;
+      --green:  #16a34a;
+      --yellow: #ca8a04;
+      --red:    #dc2626;
+    }
+
+    body {
+      background: var(--navy);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.6;
+    }
+
+    /* dot grid bg */
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: radial-gradient(circle, rgba(2,132,199,0.08) 1px, transparent 1px);
+      background-size: 32px 32px;
+      pointer-events: none; z-index: 0; opacity: 0.5;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky; top: 0; z-index: 10;
+      background: #2f9fde;
+      border-bottom: 1px solid rgba(0,0,0,0.12);
+      padding: 0 3rem; height: 72px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .logo { display: flex; align-items: center; text-decoration: none; }
+    .logo img { height: 56px; width: auto; border-radius: 8px; object-fit: contain; }
+
+    .nav-links { display: flex; align-items: center; gap: 2rem; list-style: none; }
+    .nav-links a {
+      font-size: 13.5px; color: rgba(255,255,255,0.85);
+      text-decoration: none; transition: color 0.15s;
+    }
+    .nav-links a:hover, .nav-links a.active { color: #fff; font-weight: 600; }
+
+    .nav-cta {
+      background: #fff; color: #0891b2; border-radius: 6px;
+      padding: 8px 18px; font-size: 13px; font-weight: 700;
+      text-decoration: none;
+    }
+
+    /* ── Content ── */
+    .container {
+      position: relative; z-index: 1;
+      flex: 1; width: 100%; max-width: 820px;
+      margin: 0 auto; padding: 3.5rem 2rem 5rem;
+    }
+
+    .eyebrow {
+      font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--blue); margin-bottom: 0.75rem;
+    }
+
+    h1 {
+      font-size: 2.4rem; font-weight: 700; letter-spacing: -0.02em;
+      color: var(--text); margin-bottom: 1rem; line-height: 1.15;
+    }
+
+    .lead { font-size: 16px; color: var(--muted); margin-bottom: 3rem; max-width: 640px; }
+
+    h2 {
+      font-size: 1.3rem; font-weight: 600; color: var(--text);
+      margin: 2.5rem 0 1rem; padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin: 1.5rem 0 0.5rem; }
+
+    p { color: var(--muted); margin-bottom: 1rem; font-size: 14.5px; }
+
+    a.inline { color: var(--blue); text-decoration: none; }
+    a.inline:hover { text-decoration: underline; }
+
+    ul.feat { list-style: none; margin-bottom: 1.5rem; }
+    ul.feat li {
+      color: var(--muted); font-size: 14px; padding: 6px 0 6px 22px;
+      position: relative;
+    }
+    ul.feat li::before {
+      content: ''; position: absolute; left: 0; top: 13px;
+      width: 6px; height: 6px; border-radius: 50%; background: var(--blue);
+    }
+    ul.feat li strong { color: var(--text); font-weight: 600; }
+
+    /* phase/spec cards */
+    .grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+      margin-bottom: 1.5rem;
+    }
+    .item {
+      background: var(--navy2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 14px 16px;
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+      cursor: default;
+    }
+    .item:hover {
+      transform: translateY(-3px);
+      border-color: #2f9fde;
+      background: #fff;
+      box-shadow: 0 8px 24px rgba(47,159,222,0.15);
+    }
+    .item-title { font-size: 13.5px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .item-desc  { font-size: 12.5px; color: var(--muted); }
+    .item-src   { font-size: 11px; color: var(--dim); font-family: monospace; margin-top: 5px; }
+
+    /* code block */
+    pre {
+      background: #f1f5f9; border: 1px solid #e2e8f0;
+      border-radius: 8px; padding: 16px 18px; overflow-x: auto;
+      margin-bottom: 1.25rem;
+    }
+    code {
+      font-family: 'SF Mono', 'Consolas', monospace; font-size: 13px;
+      color: #334155;
+    }
+    .c-method { color: #2563eb; font-weight: 600; }
+    .c-path   { color: #0e7490; }
+    .c-comment{ color: #94a3b8; }
+    .c-str    { color: #c2410c; }
+
+    table.spec { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+    table.spec th {
+      text-align: left; padding: 9px 12px; font-size: 11px;
+      text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    table.spec td {
+      padding: 9px 12px; font-size: 13px; color: var(--muted);
+      border-bottom: 1px solid rgba(21,32,64,0.6); font-family: monospace;
+    }
+    table.spec td:first-child { color: var(--cyan); }
+
+    .back {
+      display: inline-flex; align-items: center; gap: 6px;
+      color: var(--blue); text-decoration: none; font-size: 13px; margin-top: 2rem;
+    }
+    .back:hover { text-decoration: underline; }
+
+    footer {
+      position: relative; z-index: 1;
+      border-top: 1px solid var(--border); padding: 14px 3rem;
+      font-size: 12px; color: var(--dim); text-align: center;
+    }
+
+    @media (max-width: 700px) {
+      .nav-links { display: none; }
+      nav { padding: 0 1.5rem; }
+      .grid { grid-template-columns: 1fr; }
+      h1 { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="/" class="logo"><img src="/static/logo.png" alt="OSINT Agent"/></a>
+    <ul class="nav-links">
+      <li><a href="/">Scan</a></li>
+      <li><a href="/about" class="{{ 'active' if page=='about' }}">About</a></li>
+      <li><a href="/features" class="{{ 'active' if page=='features' }}">Features</a></li>
+      <li><a href="/api" class="{{ 'active' if page=='api' }}">API</a></li>
+      <li><a href="/docs" class="{{ 'active' if page=='docs' }}">Docs</a></li>
+    </ul>
+    <a href="/records" class="nav-cta">Records</a>
+  </nav>
+
+  <div class="container">
+
+    {# ─────────────────────────── ABOUT ─────────────────────────── #}
+    {% if page == 'about' %}
+    <p class="eyebrow">About</p>
+    <h1>Automated Open Source Intelligence</h1>
+    <p class="lead">
+      OSINT Agent is a multi-agent reconnaissance platform that gathers, correlates, and
+      analyzes publicly available intelligence about any domain, IP address, or email -
+      then produces a risk-scored report powered by Claude AI.
+    </p>
+
+    <h2>What it does</h2>
+    <p>
+      Give it a target and it autonomously runs 14 intelligence phases across dozens of
+      free and commercial data sources. It maps the digital footprint, identifies the
+      attack surface, checks for leaked data and known vulnerabilities, and assigns a
+      0-10 risk score. The kind of work that would normally take an analyst hours, done in minutes.
+    </p>
+
+    <h2>How it works</h2>
+    <p>
+      A central <strong style="color:var(--text)">orchestrator</strong> coordinates specialized
+      sub-agents, each responsible for one domain of intelligence such as DNS, email discovery,
+      subdomain enumeration, breach checks, and threat intel. Findings are aggregated,
+      scored by a weighted risk model, and passed to Claude Sonnet for a final analyst-grade report.
+    </p>
+
+    <h2>Built with</h2>
+    <ul class="feat">
+      <li><strong>Python + Flask</strong>: backend orchestration and web interface</li>
+      <li><strong>Anthropic Claude (Sonnet 4.6)</strong>: AI correlation and reporting</li>
+      <li><strong>SQLite</strong>: local persistence of every scan</li>
+      <li><strong>Plotly + NetworkX</strong>: interactive network graphs</li>
+      <li><strong>Leaflet.js</strong>: IP geolocation maps</li>
+    </ul>
+
+    <h2>Ethical use</h2>
+    <p>
+      This tool is for <strong style="color:var(--text)">authorized reconnaissance only</strong>:
+      domains you own, targets you have written permission to test, bug bounty scope, or
+      security research. Unauthorized use may violate CFAA, GDPR, PECA, and other laws.
+    </p>
+
+    {# ─────────────────────────── FEATURES ─────────────────────────── #}
+    {% elif page == 'features' %}
+    <p class="eyebrow">Features</p>
+    <h1>14 Intelligence Phases</h1>
+    <p class="lead">
+      Every scan runs the full pipeline across multiple data sources, deduplicating and
+      correlating results into a single intelligence picture.
+    </p>
+
+    <div class="grid">
+      <div class="item"><div class="item-title">1 · DNS &amp; WHOIS</div><div class="item-desc">A/MX/NS/TXT/CNAME records, registrar, creation date</div><div class="item-src">dnspython · python-whois</div></div>
+      <div class="item"><div class="item-title">2 · Email Discovery</div><div class="item-desc">Company emails, web crawl, pattern generation</div><div class="item-src">Hunter.io · crawler</div></div>
+      <div class="item"><div class="item-title">3 · Subdomain Enum</div><div class="item-desc">Certificate transparency + passive DNS + brute-force</div><div class="item-src">crt.sh · OTX · RapidDNS</div></div>
+      <div class="item"><div class="item-title">4 · IP Geolocation</div><div class="item-desc">Country, city, ISP, org, coordinates with map</div><div class="item-src">ip-api.com</div></div>
+      <div class="item"><div class="item-title">5 · Port Scanning</div><div class="item-desc">Open ports, dangerous service detection</div><div class="item-src">Shodan · socket</div></div>
+      <div class="item"><div class="item-title">6 · Breach Check</div><div class="item-desc">Emails found in known data breaches</div><div class="item-src">BreachDirectory</div></div>
+      <div class="item"><div class="item-title">7 · Tech Stack</div><div class="item-desc">Server, CMS, framework + version fingerprinting</div><div class="item-src">headers · HTML</div></div>
+      <div class="item"><div class="item-title">8 · SSL Certificate</div><div class="item-desc">Expiry, issuer, SANs, validity check</div><div class="item-src">ssl stdlib</div></div>
+      <div class="item"><div class="item-title">9 · CVE Lookup</div><div class="item-desc">Known vulnerabilities for detected tech</div><div class="item-src">NIST NVD</div></div>
+      <div class="item"><div class="item-title">10 · Threat Intel</div><div class="item-desc">Malicious indicator checks across feeds</div><div class="item-src">VirusTotal · URLhaus · ThreatFox</div></div>
+      <div class="item"><div class="item-title">11 · Paste Search</div><div class="item-desc">Leaked credentials &amp; configs in public pastes</div><div class="item-src">psbdmp · LeakIX</div></div>
+      <div class="item"><div class="item-title">12 · Social / GitHub</div><div class="item-desc">Org repositories, languages, exposed data</div><div class="item-src">GitHub API</div></div>
+      <div class="item"><div class="item-title">13 · Risk Scoring</div><div class="item-desc">Weighted 0-10 attack surface score</div><div class="item-src">8 dimensions</div></div>
+      <div class="item"><div class="item-title">14 · AI Analysis</div><div class="item-desc">Executive summary &amp; prioritized recommendations</div><div class="item-src">Claude Sonnet</div></div>
+    </div>
+
+    <h2>Output formats</h2>
+    <ul class="feat">
+      <li><strong>Interactive dashboard</strong>: risk ring, stat cards, and per-module tables</li>
+      <li><strong>Network graph</strong>: Plotly visualization of the attack surface</li>
+      <li><strong>Reports</strong>: HTML, plain text, JSON, and PDF export</li>
+      <li><strong>Geolocation maps</strong>: Leaflet pins for every discovered IP</li>
+    </ul>
+
+    {# ─────────────────────────── API ─────────────────────────── #}
+    {% elif page == 'api' %}
+    <p class="eyebrow">API</p>
+    <h1>HTTP Endpoints</h1>
+    <p class="lead">
+      The Flask app exposes simple HTTP routes for launching scans, streaming progress,
+      and retrieving results. All routes are served from the local instance.
+    </p>
+
+    <h2>Scanning</h2>
+    <table class="spec">
+      <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+      <tr><td>POST</td><td>/scan</td><td>Start a scan (form field: target)</td></tr>
+      <tr><td>GET</td><td>/scan/&lt;id&gt;</td><td>Live progress page</td></tr>
+      <tr><td>GET</td><td>/scan/&lt;id&gt;/stream</td><td>SSE progress stream</td></tr>
+      <tr><td>GET</td><td>/scan/&lt;id&gt;/results</td><td>Results dashboard</td></tr>
+      <tr><td>GET</td><td>/scan/&lt;id&gt;/graph</td><td>Network graph (HTML)</td></tr>
+      <tr><td>GET</td><td>/scan/&lt;id&gt;/download/&lt;type&gt;</td><td>Download report (html/txt/json/pdf)</td></tr>
+    </table>
+
+    <h2>Records</h2>
+    <table class="spec">
+      <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+      <tr><td>GET</td><td>/records</td><td>All stored scans</td></tr>
+      <tr><td>GET</td><td>/records/&lt;id&gt;</td><td>Stored scan detail</td></tr>
+      <tr><td>GET</td><td>/records/&lt;id&gt;/graph</td><td>Stored network graph</td></tr>
+    </table>
+
+    <h2>Example</h2>
+    <p>Launch a scan with curl:</p>
+    <pre><code><span class="c-comment"># start a scan</span>
+<span class="c-method">curl</span> -X POST <span class="c-path">http://127.0.0.1:5000/scan</span> \
+     -d <span style="color:#c2410c">"target=example.com"</span> -L
+
+<span class="c-comment"># results are saved to output/reports/ and the SQLite db</span></code></pre>
+
+    <p>Or call the orchestrator directly in Python:</p>
+    <pre><code><span class="c-comment">from</span> agents.orchestrator <span class="c-comment">import</span> OSINTOrchestrator
+
+orch = OSINTOrchestrator()
+findings = orch.run(<span style="color:#c2410c">"example.com"</span>)
+<span class="c-method">print</span>(findings[<span style="color:#c2410c">"scores"</span>][<span style="color:#c2410c">"total"</span>])</code></pre>
+
+    {# ─────────────────────────── DOCS ─────────────────────────── #}
+    {% elif page == 'docs' %}
+    <p class="eyebrow">Documentation</p>
+    <h1>Using the Scanner</h1>
+    <p class="lead">
+      Everything you need to run scans, read results, and understand what the numbers mean.
+    </p>
+
+    <h2>What you can scan</h2>
+    <p>Type any of these into the search bar on the home page:</p>
+    <table class="spec">
+      <tr><th>Type</th><th>Example</th><th>What runs</th></tr>
+      <tr><td>Domain</td><td>example.com</td><td>Full 14-phase scan</td></tr>
+      <tr><td>Email</td><td>user@example.com</td><td>Extracts the domain, full scan</td></tr>
+      <tr><td>IP address</td><td>8.8.8.8</td><td>6 IP-focused phases</td></tr>
+    </table>
+    <p>
+      The scan runs live, so you'll watch each phase stream in the console, then land on the
+      results dashboard automatically when it finishes (usually 1 to 3 minutes).
+    </p>
+
+    <h2>Reading the dashboard</h2>
+    <ul class="feat">
+      <li><strong>Risk ring</strong>: the headline 0-10 score; color-coded green / yellow / red</li>
+      <li><strong>Stat cards</strong>: quick counts: emails, subdomains, breaches, malicious indicators</li>
+      <li><strong>Module cards</strong>: full detail per phase (DNS, ports, CVEs, geolocation, etc.)</li>
+      <li><strong>📍 Map buttons</strong>: open an interactive map pin for any discovered IP</li>
+      <li><strong>AI Analysis</strong>: Claude's executive summary and prioritized recommendations</li>
+    </ul>
+
+    <h2>Reading the risk score</h2>
+    <ul class="feat">
+      <li><strong style="color:var(--green)">0-4 Low</strong>: minimal exposed attack surface</li>
+      <li><strong style="color:var(--yellow)">4-7 Medium</strong>: review the flagged findings</li>
+      <li><strong style="color:var(--red)">7-10 High</strong>: significant exposure, act on the recommendations</li>
+    </ul>
+    <p>
+      The overall score is a weighted average across breaches (25%), subdomains (20%),
+      emails (15%), CVEs (10%), threat intel (10%), SSL (8%), ports (7%), and pastes (5%).
+    </p>
+
+    <h2>Saving &amp; revisiting scans</h2>
+    <p>
+      Every scan is stored automatically. Open <a href="/records" class="inline">Records</a> to
+      see your full scan history with risk scores and finding counts. Click
+      <strong>View Details</strong> on any row to reopen the complete dashboard, network graph,
+      and AI analysis. No need to re-scan.
+    </p>
+
+    <h2>Exporting results</h2>
+    <ul class="feat">
+      <li><strong>Network graph</strong>: interactive map of the attack surface</li>
+      <li><strong>HTML / Text / JSON</strong>: downloadable reports from any results page</li>
+      <li><strong>PDF</strong>: print-ready report (live scans)</li>
+    </ul>
+
+    <h2>Why a category shows 0</h2>
+    <p>
+      A <strong style="color:var(--text)">0</strong> means "nothing found by the data sources we
+      query," not a guarantee of safety. Many sources only return publicly indexed data and some
+      have free-tier limits. For example, <em>0 emails</em> usually means none are publicly listed,
+      not that the organization has none. Treat findings as a starting point for investigation.
+    </p>
+
+    <h2>Tips</h2>
+    <ul class="feat">
+      <li>Start with a <strong>domain</strong> for the richest results, since it feeds every phase</li>
+      <li>Use the <strong>example chips</strong> on the home page to try it instantly</li>
+      <li>Scanning takes longer for large domains with many subdomains, which is normal</li>
+      <li>Only scan targets you own or are authorized to test</li>
+    </ul>
+    {% endif %}
+
+    <a href="/" class="back">← Back to scanner</a>
+  </div>
+
+  <footer>© 2025 OSINT Agent · Authorized use only</footer>
+
+</body>
+</html>

@@ -1,4 +1,4 @@
-"""Network graph visualization — generates an interactive HTML graph."""
+"""Network graph visualization - generates an interactive HTML graph."""
 import json
 from pathlib import Path
 from datetime import datetime
@@ -91,7 +91,7 @@ def generate_graph_html(findings: dict) -> str:
     fig = go.Figure(
         data=[edge_trace, node_trace],
         layout=go.Layout(
-            title=f"OSINT Network Graph — {findings.get('domain','target')}",
+            title=f"OSINT Network Graph - {findings.get('domain','target')}",
             paper_bgcolor="#0d1117",
             plot_bgcolor="#0d1117",
             font=dict(color="#c9d1d9"),

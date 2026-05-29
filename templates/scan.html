@@ -1,294 +1,182 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scanning {{ target }} — OSINT Agent</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Scanning {{ target }}</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :root {
-      --bg: #0a0e1a;
-      --card: #0d1117;
-      --border: #1e2d40;
-      --green: #00ff88;
-      --cyan: #00ccff;
-      --yellow: #fbbf24;
-      --red: #f87171;
-      --text: #e2e8f0;
-      --muted: #64748b;
-    }
-
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0e0e10;
+      color: #e4e4e7;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       min-height: 100vh;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 2rem;
     }
 
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(0,255,136,0.02) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,255,136,0.02) 1px, transparent 1px);
-      background-size: 40px 40px;
-      pointer-events: none;
+    .wrap { width: 100%; max-width: 700px; }
+
+    header { margin-bottom: 1.5rem; }
+
+    .scan-label { font-size: 0.75rem; color: #52525b; margin-bottom: 0.3rem; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    .target { font-size: 1.25rem; font-weight: 600; color: #f4f4f5; font-family: monospace; }
+
+    .progress-wrap { margin-bottom: 1.25rem; }
+
+    .phase-bar {
+      display: flex; gap: 3px; margin-bottom: 0.5rem;
     }
 
-    .wrap {
-      position: relative;
-      z-index: 1;
-      width: 100%;
-      max-width: 800px;
+    .phase-seg {
+      flex: 1; height: 3px; background: #27272a; border-radius: 2px;
+      transition: background 0.3s;
     }
 
-    header {
-      text-align: center;
-      margin-bottom: 2rem;
+    .phase-seg.done    { background: #4ade80; }
+    .phase-seg.active  { background: #60a5fa; animation: pulse 1.2s ease-in-out infinite; }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    .phase-info {
+      font-size: 0.78rem; color: #71717a;
     }
 
-    .scan-label {
-      font-size: 0.75rem;
-      letter-spacing: 0.15em;
-      color: var(--muted);
-      text-transform: uppercase;
-      margin-bottom: 0.4rem;
-    }
+    .phase-info span { color: #a1a1aa; }
 
-    .target-name {
-      font-size: 1.8rem;
-      font-weight: 700;
-      font-family: monospace;
-      color: var(--green);
-      text-shadow: 0 0 20px rgba(0,255,136,0.4);
-    }
-
-    /* Phase progress bar */
-    .phases {
-      display: flex;
-      gap: 4px;
-      margin: 1.5rem 0;
-    }
-
-    .phase-dot {
-      flex: 1;
-      height: 4px;
-      background: var(--border);
-      border-radius: 2px;
-      transition: background 0.4s;
-    }
-
-    .phase-dot.done { background: var(--green); }
-    .phase-dot.active { background: var(--cyan); animation: pulse 1s ease-in-out infinite; }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-
-    .phase-label {
-      text-align: center;
-      font-size: 0.8rem;
-      color: var(--muted);
-      margin-bottom: 1rem;
-    }
-
-    .phase-label span { color: var(--cyan); font-weight: 600; }
-
-    /* Terminal */
     .terminal {
-      background: var(--card);
-      border: 1px solid var(--border);
+      background: #18181b;
+      border: 1px solid #27272a;
       border-radius: 10px;
       overflow: hidden;
-      box-shadow: 0 0 40px rgba(0,0,0,0.5);
     }
 
-    .terminal-header {
-      background: #161b22;
-      padding: 0.75rem 1rem;
+    .term-header {
+      background: #1c1c1f;
+      border-bottom: 1px solid #27272a;
+      padding: 0.6rem 1rem;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      border-bottom: 1px solid var(--border);
+      gap: 0.75rem;
     }
 
-    .dot { width: 12px; height: 12px; border-radius: 50%; }
-    .dot-red   { background: #f87171; }
-    .dot-yellow{ background: #fbbf24; }
-    .dot-green { background: #4ade80; }
+    .dots { display:flex; gap:5px; }
+    .dot  { width:10px; height:10px; border-radius:50%; }
+    .dot-r { background:#3f3f46; }
+    .dot-y { background:#3f3f46; }
+    .dot-g { background:#3f3f46; }
 
-    .terminal-title {
-      margin-left: auto;
-      margin-right: auto;
+    .term-title { font-size: 0.78rem; color: #52525b; font-family: monospace; margin: 0 auto; }
+
+    .status-pill {
+      font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 20px;
+      font-family: monospace; font-weight: 600; border: 1px solid;
+    }
+
+    .status-pill.running { color: #60a5fa; border-color: #1e3a5f; background: #0d1f35; }
+    .status-pill.done    { color: #4ade80; border-color: #14532d; background: #052e16; }
+    .status-pill.error   { color: #f87171; border-color: #7f1d1d; background: #450a0a; }
+
+    .term-body {
+      padding: 1rem;
+      font-family: 'Menlo', 'Consolas', monospace;
       font-size: 0.8rem;
-      color: var(--muted);
-      font-family: monospace;
-    }
-
-    .status-badge {
-      font-size: 0.7rem;
-      padding: 0.2rem 0.5rem;
-      border-radius: 4px;
-      font-family: monospace;
-      font-weight: 600;
-    }
-
-    .status-badge.scanning {
-      background: rgba(0,204,255,0.1);
-      border: 1px solid rgba(0,204,255,0.3);
-      color: var(--cyan);
-    }
-
-    .status-badge.done {
-      background: rgba(0,255,136,0.1);
-      border: 1px solid rgba(0,255,136,0.3);
-      color: var(--green);
-    }
-
-    .status-badge.error {
-      background: rgba(248,113,113,0.1);
-      border: 1px solid rgba(248,113,113,0.3);
-      color: var(--red);
-    }
-
-    .terminal-body {
-      padding: 1.25rem;
-      font-family: 'Consolas', 'Courier New', monospace;
-      font-size: 0.85rem;
-      line-height: 1.8;
-      height: 420px;
+      line-height: 1.75;
+      height: 380px;
       overflow-y: auto;
+      color: #a1a1aa;
     }
 
-    .terminal-body::-webkit-scrollbar { width: 6px; }
-    .terminal-body::-webkit-scrollbar-track { background: transparent; }
-    .terminal-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .term-body::-webkit-scrollbar { width: 4px; }
+    .term-body::-webkit-scrollbar-thumb { background: #27272a; border-radius: 2px; }
 
-    .line { display: flex; gap: 0.5rem; }
-    .line-prefix { color: var(--muted); user-select: none; }
-
-    .line-text { flex: 1; }
-    .line-text.info   { color: var(--cyan); }
-    .line-text.success{ color: var(--green); }
-    .line-text.warn   { color: var(--yellow); }
-    .line-text.error  { color: var(--red); }
-    .line-text.plain  { color: #94a3b8; }
+    .log-line { display:flex; gap:0.5rem; }
+    .log-prefix { color: #3f3f46; user-select:none; }
+    .log-info    { color: #60a5fa; }
+    .log-success { color: #4ade80; }
+    .log-warn    { color: #fbbf24; }
+    .log-error   { color: #f87171; }
+    .log-plain   { color: #71717a; }
 
     .cursor {
-      display: inline-block;
-      width: 8px;
-      height: 1em;
-      background: var(--green);
+      display:inline-block; width:7px; height:0.9em;
+      background:#52525b; vertical-align:text-bottom;
       animation: blink 1s step-end infinite;
-      vertical-align: text-bottom;
     }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
+    .done-notice {
+      text-align:center; margin-top:1rem;
+      font-size:0.82rem; color:#52525b; display:none;
     }
-
-    .redirect-notice {
-      text-align: center;
-      margin-top: 1.5rem;
-      font-size: 0.85rem;
-      color: var(--muted);
-    }
-
-    .redirect-notice a {
-      color: var(--green);
-      text-decoration: none;
-    }
+    .done-notice a { color:#a1a1aa; }
 
     .error-box {
-      background: rgba(248,113,113,0.07);
-      border: 1px solid rgba(248,113,113,0.3);
-      border-radius: 8px;
-      padding: 1rem 1.25rem;
-      margin-top: 1rem;
-      color: var(--red);
-      font-size: 0.85rem;
-      display: none;
+      margin-top:1rem; padding:0.875rem 1rem;
+      background:#1c0a0a; border:1px solid #3f1515;
+      border-radius:8px; font-size:0.82rem; color:#f87171; display:none;
     }
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <p class="scan-label">Scanning target</p>
-      <p class="target-name">{{ target }}</p>
+      <p class="scan-label">Scanning</p>
+      <p class="target">{{ target }}</p>
     </header>
 
-    <div class="phases" id="phases">
-      {% for i in range(14) %}
-      <div class="phase-dot" id="phase-{{ i }}"></div>
-      {% endfor %}
+    <div class="progress-wrap">
+      <div class="phase-bar" id="phases">
+        {% for i in range(14) %}<div class="phase-seg" id="phase-{{ i }}"></div>{% endfor %}
+      </div>
+      <p class="phase-info" id="phase-label">Initializing<span id="phase-num"></span></p>
     </div>
-    <p class="phase-label" id="phase-label">Initializing<span id="phase-num"></span></p>
 
     <div class="terminal">
-      <div class="terminal-header">
-        <span class="dot dot-red"></span>
-        <span class="dot dot-yellow"></span>
-        <span class="dot dot-green"></span>
-        <span class="terminal-title">osint-agent — {{ target }}</span>
-        <span class="status-badge scanning" id="status-badge">SCANNING</span>
-      </div>
-      <div class="terminal-body" id="log">
-        <div class="line">
-          <span class="line-prefix">$</span>
-          <span class="line-text info">python main.py {{ target }}</span>
+      <div class="term-header">
+        <div class="dots">
+          <span class="dot dot-r"></span>
+          <span class="dot dot-y"></span>
+          <span class="dot dot-g"></span>
         </div>
-        <div class="line">
-          <span class="line-prefix"> </span>
-          <span class="line-text plain" id="cursor-line"><span class="cursor"></span></span>
+        <span class="term-title">osint-agent · {{ target }}</span>
+        <span class="status-pill running" id="status-pill">Running</span>
+      </div>
+      <div class="term-body" id="log">
+        <div class="log-line">
+          <span class="log-prefix">$</span>
+          <span class="log-info">python app.py {{ target }}</span>
+        </div>
+        <div class="log-line" id="cursor-line">
+          <span class="log-prefix"> </span>
+          <span class="log-plain"><span class="cursor"></span></span>
         </div>
       </div>
     </div>
 
     <div class="error-box" id="error-box"></div>
-
-    <p class="redirect-notice" id="redirect-notice" style="display:none">
-      Scan complete — redirecting to results... <a href="/scan/{{ scan_id }}/results">click here if not redirected</a>
+    <p class="done-notice" id="done-notice">
+      Complete. <a href="/scan/{{ scan_id }}/results">View results</a>
     </p>
   </div>
 
   <script>
     const scanId = "{{ scan_id }}";
-    const log = document.getElementById('log');
-    const phases = document.querySelectorAll('.phase-dot');
+    const phases = document.querySelectorAll('.phase-seg');
     const phaseLabel = document.getElementById('phase-label');
-    const statusBadge = document.getElementById('status-badge');
+    const statusPill = document.getElementById('status-pill');
+    const log = document.getElementById('log');
     let currentPhase = -1;
 
     const PHASE_MAP = {
-      // Domain flow
-      '[DNS]':      0,
-      '[EMAIL]':    1,
-      '[SUB]':      2,
-      '[GEO]':      3,
-      '[PORT]':     4,
-      '[BREACH]':   5,
-      '[TECH]':     6,
-      '[SSL]':      7,
-      '[CVE]':      8,
-      '[THREAT]':   9,
-      '[PASTE]':    10,
-      '[SOCIAL]':   11,
-      '[SCORE]':    12,
-      '[AI]':       13,
-      // IP flow
-      '[RDNS]':     0,
-      // Username flow
-      '[USERNAME]': 0,
+      '[DNS]':0,'[EMAIL]':1,'[SUB]':2,'[GEO]':3,'[PORT]':4,
+      '[BREACH]':5,'[TECH]':6,'[SSL]':7,'[CVE]':8,'[THREAT]':9,
+      '[PASTE]':10,'[SOCIAL]':11,'[SCORE]':12,'[AI]':13,
+      '[RDNS]':0,
     };
 
     const PHASE_NAMES = [
@@ -298,92 +186,73 @@
       'Risk Scoring','AI Analysis'
     ];
 
-    function getLineClass(text) {
-      if (text.startsWith('[+]')) return 'success';
-      if (text.startsWith('[*]')) return 'info';
-      if (text.startsWith('[!]')) return 'warn';
-      if (text.startsWith('[✗]') || text.startsWith('__ERROR')) return 'error';
-      return 'plain';
+    function lineClass(t) {
+      if (t.startsWith('[+]')) return 'log-success';
+      if (t.startsWith('[*]')) return 'log-info';
+      if (t.startsWith('[!]')) return 'log-warn';
+      if (t.startsWith('[✗]')) return 'log-error';
+      return 'log-plain';
     }
+
+    function esc(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
     function appendLine(text) {
-      // Remove cursor line
-      const cursorLine = document.getElementById('cursor-line');
-      if (cursorLine) cursorLine.parentElement.remove();
-
+      const cl = document.getElementById('cursor-line');
+      if (cl) cl.remove();
       const div = document.createElement('div');
-      div.className = 'line';
-      div.innerHTML = `<span class="line-prefix">›</span><span class="line-text ${getLineClass(text)}">${escHtml(text)}</span>`;
+      div.className = 'log-line';
+      div.innerHTML = `<span class="log-prefix">›</span><span class="${lineClass(text)}">${esc(text)}</span>`;
       log.appendChild(div);
-
-      // Re-add cursor
       const c = document.createElement('div');
-      c.className = 'line';
-      c.innerHTML = '<span class="line-prefix"> </span><span class="line-text plain" id="cursor-line"><span class="cursor"></span></span>';
+      c.id = 'cursor-line'; c.className = 'log-line';
+      c.innerHTML = '<span class="log-prefix"> </span><span class="log-plain" id="cursor-line"><span class="cursor"></span></span>';
       log.appendChild(c);
-
       log.scrollTop = log.scrollHeight;
-    }
-
-    function escHtml(t) {
-      return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
     function updatePhase(text) {
       for (const [prefix, idx] of Object.entries(PHASE_MAP)) {
         if (text.startsWith(prefix)) {
-          // Mark previous phases done
-          for (let i = 0; i < idx; i++) phases[i].className = 'phase-dot done';
-          phases[idx].className = 'phase-dot active';
+          for (let i = 0; i < idx; i++) phases[i].className = 'phase-seg done';
+          phases[idx].className = 'phase-seg active';
           currentPhase = idx;
-          phaseLabel.innerHTML = `Phase ${idx + 1}/9 — <span>${PHASE_NAMES[idx]}</span>`;
+          phaseLabel.innerHTML = `Phase ${idx+1}/14: <span>${PHASE_NAMES[idx]}</span>`;
           break;
         }
       }
       if (text.startsWith('[+]') && currentPhase >= 0) {
-        phases[currentPhase].className = 'phase-dot done';
+        phases[currentPhase].className = 'phase-seg done';
       }
     }
 
     const es = new EventSource(`/scan/${scanId}/stream`);
-
     es.onmessage = function(e) {
       const data = e.data;
       if (data === '__PING__') return;
-
       if (data === '__DONE__') {
         es.close();
-        // Mark all done
-        phases.forEach(p => p.className = 'phase-dot done');
-        phaseLabel.innerHTML = 'Scan complete — <span>all phases done</span>';
-        statusBadge.textContent = 'DONE';
-        statusBadge.className = 'status-badge done';
-        document.getElementById('redirect-notice').style.display = 'block';
-        const cursorLine = document.getElementById('cursor-line');
-        if (cursorLine) cursorLine.parentElement.remove();
+        phases.forEach(p => p.className = 'phase-seg done');
+        phaseLabel.innerHTML = 'Scan complete: <span>all phases done</span>';
+        statusPill.textContent = 'Done';
+        statusPill.className = 'status-pill done';
+        document.getElementById('done-notice').style.display = 'block';
+        document.getElementById('cursor-line')?.remove();
         setTimeout(() => { window.location.href = `/scan/${scanId}/results`; }, 1500);
         return;
       }
-
       if (data.startsWith('__ERROR__')) {
         es.close();
-        const msg = data.replace('__ERROR__', '');
-        statusBadge.textContent = 'ERROR';
-        statusBadge.className = 'status-badge error';
+        const msg = data.replace('__ERROR__','');
+        statusPill.textContent = 'Error';
+        statusPill.className = 'status-pill error';
         const box = document.getElementById('error-box');
         box.style.display = 'block';
-        box.textContent = '✗ Error: ' + msg;
+        box.textContent = 'Error: ' + msg;
         appendLine('[✗] ' + msg);
         return;
       }
-
       updatePhase(data);
       appendLine(data);
-    };
-
-    es.onerror = function() {
-      // If scan already done, check status
-      fetch(`/scan/${scanId}/stream`).catch(() => {});
     };
   </script>
 </body>

@@ -1,4 +1,4 @@
-"""IP Geolocation Agent — enriches IPs using ip-api.com (free, no key required)."""
+"""IP Geolocation Agent - enriches IPs using ip-api.com (free, no key required)."""
 import requests
 from utils.helpers import log_info, log_success, log_warn
 from config.settings import REQUEST_TIMEOUT

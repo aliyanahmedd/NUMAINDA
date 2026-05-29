@@ -93,7 +93,7 @@ def github_user_repos(username: str) -> list | None:
 # ── DNS (no API key needed) ───────────────────────────────────────────────────
 
 def crt_sh_subdomains(domain: str) -> list[str]:
-    """Certificate Transparency log — free, no key required."""
+    """Certificate Transparency log - free, no key required."""
     data = _get("https://crt.sh/", params={"q": f"%.{domain}", "output": "json"})
     if not data:
         return []

@@ -1,6 +1,7 @@
 """Database helper functions for inserting and querying OSINT findings."""
 import json
 from database.models import get_connection
+import sqlite3
 
 
 def create_target(input_value: str, input_type: str) -> int:
@@ -200,6 +201,156 @@ def insert_port_findings(target_id: int, findings: list[dict]):
     )
     conn.commit()
     conn.close()
+
+
+def insert_scan_files(target_id: int, graph_path: str = None, html_path: str = None,
+                      txt_path: str = None, json_path: str = None):
+    conn = get_connection()
+    conn.execute(
+        """INSERT INTO scan_files (target_id, graph_path, html_path, txt_path, json_path)
+           VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT(target_id) DO UPDATE SET
+               graph_path=excluded.graph_path,
+               html_path=excluded.html_path,
+               txt_path=excluded.txt_path,
+               json_path=excluded.json_path""",
+        (target_id, graph_path, html_path, txt_path, json_path),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_scan_files(target_id: int) -> dict:
+    conn = get_connection()
+    conn.row_factory = sqlite3.Row
+    row = conn.execute("SELECT * FROM scan_files WHERE target_id=?", (target_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else {}
+
+
+def insert_analysis(target_id: int, content: str):
+    conn = get_connection()
+    conn.execute(
+        """INSERT INTO analysis (target_id, content) VALUES (?, ?)
+           ON CONFLICT(target_id) DO UPDATE SET content=excluded.content""",
+        (target_id, content),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_all_records() -> list[dict]:
+    conn = get_connection()
+    conn.row_factory = __import__('sqlite3').Row
+    rows = conn.execute("""
+        SELECT t.id, t.input, t.input_type, t.created_at,
+               rs.total_score,
+               (SELECT COUNT(*) FROM emails WHERE target_id=t.id) AS email_count,
+               (SELECT COUNT(*) FROM subdomains WHERE target_id=t.id) AS subdomain_count,
+               (SELECT COUNT(*) FROM breaches WHERE target_id=t.id) AS breach_count,
+               (SELECT COUNT(*) FROM threat_intel WHERE target_id=t.id AND malicious=1) AS threat_count
+        FROM targets t
+        LEFT JOIN risk_scores rs ON rs.target_id = t.id
+        ORDER BY t.created_at DESC
+    """).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_record_detail(target_id: int) -> dict:
+    conn = get_connection()
+    conn.row_factory = __import__('sqlite3').Row
+
+    def fetch(table, cols="*"):
+        return [dict(r) for r in conn.execute(
+            f"SELECT {cols} FROM {table} WHERE target_id=?", (target_id,)
+        ).fetchall()]
+
+    target = conn.execute("SELECT * FROM targets WHERE id=?", (target_id,)).fetchone()
+    if not target:
+        conn.close()
+        return {}
+
+    score_row = conn.execute(
+        "SELECT * FROM risk_scores WHERE target_id=?", (target_id,)
+    ).fetchone()
+
+    record = {
+        "target_id":  target_id,
+        "input":      target["input"],
+        "input_type": target["input_type"],
+        "created_at": target["created_at"],
+        "domain":     target["input"],
+        "scan_type":  target["input_type"],
+        "scores": dict(score_row) if score_row else {},
+        "emails":     fetch("emails"),
+        "subdomains": fetch("subdomains"),
+        "breaches":   fetch("breaches"),
+        "threat_intel": fetch("threat_intel"),
+        "dns":        {"records": fetch("dns_records", "record_type, value"), "whois": {}},
+        "geo":        fetch("geo_data"),
+        "ssl":        {},
+        "cves":       [],
+        "pastes":     fetch("paste_findings", "paste_id AS id, paste_date AS date, snippet, url, keyword"),
+        "ports":      fetch("port_findings"),
+        "tech":       {"technologies": [], "versioned": {}, "cms": None, "server": None, "waf": None},
+        "social":     {"repositories": [], "github_users": []},
+        "analysis":   (conn.execute("SELECT content FROM analysis WHERE target_id=?", (target_id,)).fetchone() or [""])[0],
+    }
+
+    ssl_rows = fetch("ssl_certs")
+    if ssl_rows:
+        main = ssl_rows[0]
+        record["ssl"] = {
+            "main": {
+                "hostname":      main.get("hostname"),
+                "valid":         bool(main.get("valid")),
+                "expires":       main.get("expires"),
+                "days_left":     main.get("days_left"),
+                "issuer":        main.get("issuer"),
+                "subject":       main.get("subject"),
+                "expired":       bool(main.get("expired")),
+                "expiring_soon": bool(main.get("expiring_soon")),
+            },
+            "subdomains": []
+        }
+
+    cve_rows = fetch("cve_findings")
+    cve_map: dict = {}
+    for c in cve_rows:
+        t = c.get("tech", "unknown")
+        if t not in cve_map:
+            cve_map[t] = {"tech": t, "version": c.get("version", ""), "cves": []}
+        cve_map[t]["cves"].append({
+            "id": c.get("cve_id"), "score": c.get("score"),
+            "severity": c.get("severity"), "description": c.get("description"),
+            "url": c.get("url"),
+        })
+    record["cves"] = list(cve_map.values())
+
+    port_rows = fetch("port_findings")
+    import json as _json
+    record["ports"] = []
+    for p in port_rows:
+        record["ports"].append({
+            "ip":       p.get("ip"),
+            "hostname": p.get("hostname"),
+            "ports":    _json.loads(p.get("ports", "[]")),
+            "services": _json.loads(p.get("services", "{}")),
+            "dangerous": _json.loads(p.get("dangerous", "[]")),
+        })
+
+    # Fix subdomains open_ports/technology fields
+    for s in record["subdomains"]:
+        for key in ("open_ports", "technology"):
+            if isinstance(s.get(key), str):
+                try:
+                    s[key] = _json.loads(s[key])
+                except Exception:
+                    s[key] = []
+
+    conn.close()
+    return record
 
 
 def get_full_report(target_id: int) -> dict:

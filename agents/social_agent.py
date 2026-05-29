@@ -1,4 +1,4 @@
-"""Social Media Intelligence Agent — GitHub search for company presence."""
+"""Social Media Intelligence Agent - GitHub search for company presence."""
 from utils.api_client import github_search_users, github_user_repos
 from utils.helpers import log_info, log_success, log_warn
 
