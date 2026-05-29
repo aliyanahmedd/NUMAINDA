@@ -12,18 +12,18 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0e0e10;
-      --bg2: #18181b;
-      --card: #18181b;
-      --card2: #1c1c1f;
-      --border: #27272a;
-      --green: #4ade80;
-      --cyan: #60a5fa;
-      --yellow: #fbbf24;
-      --red: #f87171;
-      --orange: #fb923c;
-      --text: #e4e4e7;
-      --muted: #71717a;
+      --bg: #ffffff;
+      --bg2: #f8fafc;
+      --card: #ffffff;
+      --card2: #f1f5f9;
+      --border: #e2e8f0;
+      --green: #16a34a;
+      --cyan: #2f9fde;
+      --yellow: #ca8a04;
+      --red: #dc2626;
+      --orange: #ea580c;
+      --text: #0f172a;
+      --muted: #64748b;
     }
 
     body {
@@ -78,6 +78,67 @@
 
     .topbar-right { display: flex; gap: 0.75rem; align-items: center; }
 
+    /* Report dropdown */
+    .report-dd { position: relative; }
+    .report-menu {
+      position: absolute; right: 0; top: calc(100% + 6px);
+      background: #fff; border: 1px solid var(--border); border-radius: 8px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+      min-width: 150px; padding: 6px; z-index: 300;
+      display: none;
+    }
+    .report-dd.open .report-menu { display: block; }
+    .report-menu a {
+      display: block; padding: 9px 12px; border-radius: 6px;
+      font-size: 13px; color: var(--text); text-decoration: none;
+      white-space: nowrap;
+    }
+    .report-menu a:hover { background: var(--card2); text-decoration: none; }
+
+    .topbar-toggle {
+      display: none;
+      flex-direction: column; justify-content: center; gap: 5px;
+      width: 40px; height: 40px; padding: 8px;
+      background: transparent; border: none; cursor: pointer;
+    }
+    .topbar-toggle span {
+      display: block; height: 2px; width: 100%;
+      background: #fff; border-radius: 2px;
+      transition: transform 0.25s ease, opacity 0.2s ease;
+    }
+    .topbar-toggle.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .topbar-toggle.open span:nth-child(2) { opacity: 0; }
+    .topbar-toggle.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    @media (max-width: 860px) {
+      .topbar { padding: 0 1.25rem; }
+      .target-chip { display: none; }
+      .topbar-toggle { display: flex; }
+
+      .topbar-right {
+        position: absolute;
+        top: 72px; right: 0;
+        flex-direction: column; align-items: stretch; gap: 6px;
+        background: #2f9fde;
+        border-top: 1px solid rgba(255,255,255,0.2);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+        width: 230px; padding: 12px;
+        border-radius: 0 0 0 12px;
+        transform: translateY(-8px); opacity: 0; pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+      }
+      .topbar-right.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
+      .topbar-right .btn { width: 100%; justify-content: center; }
+    }
+
+    @media (max-width: 900px) {
+      .main { padding: 1.25rem; }
+      .grid2, .grid3 { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(2,1fr); }
+      .hero { flex-direction: column; text-align: center; }
+      .score-bars { justify-content: center; }
+    }
+
     .btn {
       padding: 0.45rem 1rem;
       border-radius: 6px;
@@ -96,19 +157,19 @@
 
     .btn-ghost {
       background: transparent;
-      border: 1px solid #3f3f46;
-      color: #a1a1aa;
+      border: 1px solid var(--border);
+      color: var(--muted);
     }
 
     .btn-primary {
-      background: #f4f4f5;
-      color: #09090b;
+      background: #2f9fde;
+      color: #fff;
     }
 
     .btn-cyan {
-      background: #1e3a5f;
-      border: 1px solid #1e40af;
-      color: #93c5fd;
+      background: rgba(47,159,222,0.1);
+      border: 1px solid rgba(47,159,222,0.35);
+      color: #1a6fa8;
     }
 
     /* ── Main layout ── */
@@ -160,7 +221,7 @@
     .score-bar-item { flex: 1; min-width: 120px; }
     .score-bar-label { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.3rem; }
     .score-bar-label span:last-child { font-family: monospace; color: var(--text); }
-    .score-bar-track { background: var(--bg); border-radius: 4px; height: 6px; }
+    .score-bar-track { background: var(--card2); border-radius: 4px; height: 6px; }
     .score-bar-fill { height: 6px; border-radius: 4px; transition: width 1s ease; }
 
     /* ── Stats row ── */
@@ -201,7 +262,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: #1c1c1f;
+      background: var(--card2);
     }
 
     .card-title {
@@ -209,7 +270,7 @@
       font-weight: 600;
       letter-spacing: 0.04em;
       text-transform: uppercase;
-      color: #a1a1aa;
+      color: #475569;
       display: flex;
       align-items: center;
       gap: 0.5rem;
@@ -217,13 +278,13 @@
 
     .card-title span { color: var(--text); }
     .count-badge {
-      background: #27272a;
-      border: 1px solid #3f3f46;
+      background: var(--card2);
+      border: 1px solid var(--border);
       border-radius: 4px;
       padding: 0.15rem 0.5rem;
       font-family: monospace;
       font-size: 0.72rem;
-      color: #a1a1aa;
+      color: #475569;
     }
 
     .card-body { padding: 1.25rem; }
@@ -231,9 +292,9 @@
     /* ── Table ── */
     .tbl { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
     .tbl th { text-align: left; padding: 0.4rem 0.75rem; color: #52525b; font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); }
-    .tbl td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #27272a; font-size: 0.8rem; }
+    .tbl td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
     .tbl tr:last-child td { border-bottom: none; }
-    .tbl tr:hover td { background: rgba(255,255,255,0.015); }
+    .tbl tr:hover td { background: rgba(47,159,222,0.05); }
 
     .risk-flag {
       display: inline-block;
@@ -251,9 +312,9 @@
     /* ── Tech badges ── */
     .tech-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .tech-badge {
-      background: #27272a;
-      border: 1px solid #3f3f46;
-      color: #a1a1aa;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      color: #334155;
       padding: 0.25rem 0.65rem;
       border-radius: 5px;
       font-size: 0.78rem;
@@ -266,7 +327,7 @@
     .analysis-text {
       font-size: 0.88rem;
       line-height: 1.85;
-      color: #cbd5e1;
+      color: #334155;
       white-space: pre-wrap;
       font-family: 'Segoe UI', system-ui, sans-serif;
     }
@@ -314,21 +375,29 @@
       <a href="/" style="text-decoration:none">
         <span class="logo-text">
           <img src="/static/logo.png" alt="logo"/>
-          OSINT Agent
         </span>
       </a>
       <span class="target-chip">{{ target }}</span>
     </div>
-    <div class="topbar-right">
+    <button class="topbar-toggle" id="topbarToggle" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    {% set base = ('/records/' + scan_id[3:]) if scan_id.startswith('db-') else ('/scan/' + scan_id) %}
+    <div class="topbar-right" id="topbarRight">
       <a href="/records" class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,0.3)">Records</a>
-      {% if scan_id.startswith('db-') %}
-      <a href="/records/{{ scan_id[3:] }}/graph" class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,0.3)" target="_blank">🕸 Graph</a>
-      <a href="/records/{{ scan_id[3:] }}/download/html" class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,0.3)">↓ Report</a>
-      {% else %}
-      <a href="/scan/{{ scan_id }}/graph" class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,0.3)" target="_blank">🕸 Graph</a>
-      <a href="/scan/{{ scan_id }}/download/html" class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,0.3)">↓ Report</a>
-      {% endif %}
-      <a href="/" class="btn btn-primary">+ New Scan</a>
+      <a href="{{ base }}/graph" class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,0.3)" target="_blank">🕸 Graph</a>
+
+      <div class="report-dd" id="reportDd">
+        <button class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,0.3)" id="reportBtn">↓ Report ▾</button>
+        <div class="report-menu">
+          <a href="{{ base }}/download/html">HTML</a>
+          <a href="{{ base }}/download/txt">Plain Text</a>
+          <a href="{{ base }}/download/json">JSON</a>
+          <a href="{{ base }}/download/pdf">PDF</a>
+        </div>
+      </div>
+
+      <a href="/" class="btn" style="background:#fff;color:#1a6fa8;font-weight:700">+ New Scan</a>
     </div>
   </nav>
 
@@ -573,7 +642,7 @@
     {# ── Hero ── #}
     {% set scores = findings.get('scores', {}) %}
     {% set total = scores.get('total', 0) %}
-    {% set risk_color = '#f87171' if total >= 7 else ('#fbbf24' if total >= 4 else '#00ff88') %}
+    {% set risk_color = '#dc2626' if total >= 7 else ('#ca8a04' if total >= 4 else '#16a34a') %}
     {% set circumference = 283 %}
     {% set dash = circumference - (total / 10 * circumference) %}
 
@@ -606,7 +675,7 @@
         <div class="score-bars">
           {% for key, label in [('email','Email'),('subdomain','Subdomain'),('breach','Breach'),('threat','Threat'),('ssl','SSL'),('cve','CVEs'),('port','Ports'),('paste','Pastes')] %}
           {% set val = scores.get(key, 0) %}
-          {% set color = '#f87171' if val >= 7 else ('#fbbf24' if val >= 4 else '#00ff88') %}
+          {% set color = '#dc2626' if val >= 7 else ('#ca8a04' if val >= 4 else '#16a34a') %}
           <div class="score-bar-item">
             <div class="score-bar-label"><span>{{ label }}</span><span>{{ "%.1f"|format(val) }}</span></div>
             <div class="score-bar-track">
@@ -1109,6 +1178,27 @@
 </div>
 
 <script>
+  // mobile topbar dropdown
+  const topbarToggle = document.getElementById('topbarToggle');
+  const topbarRight = document.getElementById('topbarRight');
+  if (topbarToggle) {
+    topbarToggle.addEventListener('click', () => {
+      topbarRight.classList.toggle('open');
+      topbarToggle.classList.toggle('open');
+    });
+  }
+
+  // report format dropdown
+  const reportDd = document.getElementById('reportDd');
+  const reportBtn = document.getElementById('reportBtn');
+  if (reportBtn) {
+    reportBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      reportDd.classList.toggle('open');
+    });
+    document.addEventListener('click', () => reportDd.classList.remove('open'));
+  }
+
   let modalMap = null;
   let modalMarker = null;
   let _modalLat = 0, _modalLon = 0;

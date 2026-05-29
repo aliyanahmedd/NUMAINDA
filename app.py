@@ -47,10 +47,15 @@ def _run_scan(scan_id: str, target: str):
         graph_path = save_graph(findings)
         pdf_path = save_pdf_report(findings)
 
+        json_path = txt_path.with_suffix(".json")
+        serializable = {k: v for k, v in findings.items() if isinstance(v, (str, int, float, list, dict))}
+        json_path.write_text(json.dumps(serializable, indent=2, default=str), encoding="utf-8")
+
         _scans[scan_id]["txt_path"] = str(txt_path)
         _scans[scan_id]["html_path"] = str(html_path)
         _scans[scan_id]["graph_path"] = str(graph_path)
         _scans[scan_id]["pdf_path"] = str(pdf_path) if pdf_path else None
+        _scans[scan_id]["json_path"] = str(json_path)
 
         target_id = findings.get("target_id")
         if target_id:
@@ -61,11 +66,6 @@ def _run_scan(scan_id: str, target: str):
                 txt_path=str(txt_path),
                 json_path=str(json_path),
             )
-
-        json_path = txt_path.with_suffix(".json")
-        serializable = {k: v for k, v in findings.items() if isinstance(v, (str, int, float, list, dict))}
-        json_path.write_text(json.dumps(serializable, indent=2, default=str), encoding="utf-8")
-        _scans[scan_id]["json_path"] = str(json_path)
 
         emit("[+] All reports saved.")
         q.put("__DONE__")
@@ -132,21 +132,48 @@ def record_detail(target_id: int):
 
 @app.route("/records/<int:target_id>/graph")
 def record_graph(target_id: int):
+    # Prefer a saved graph; otherwise regenerate from stored findings.
     files = get_scan_files(target_id)
     path = files.get("graph_path")
-    if not path or not Path(path).exists():
-        return "Graph not found", 404
-    return send_file(path)
+    if path and Path(path).exists():
+        return send_file(path)
+    data = get_record_detail(target_id)
+    if not data:
+        return "Record not found", 404
+    return save_graph(data).read_text(encoding="utf-8")
 
 
 @app.route("/records/<int:target_id>/download/<filetype>")
 def record_download(target_id: int, filetype: str):
+    # Prefer a saved file; otherwise regenerate from stored findings.
     files = get_scan_files(target_id)
     key_map = {"html": "html_path", "txt": "txt_path", "json": "json_path"}
     path = files.get(key_map.get(filetype, ""))
-    if not path or not Path(path).exists():
-        return "File not found", 404
-    return send_file(path, as_attachment=True)
+    if path and Path(path).exists():
+        return send_file(path, as_attachment=True)
+
+    data = get_record_detail(target_id)
+    if not data:
+        return "Record not found", 404
+
+    if filetype == "html":
+        return send_file(save_html_report(data), as_attachment=True)
+    if filetype == "txt":
+        return send_file(save_text_report(data), as_attachment=True)
+    if filetype == "pdf":
+        pdf = save_pdf_report(data)
+        if not pdf:
+            return "PDF generation unavailable", 500
+        return send_file(pdf, as_attachment=True)
+    if filetype == "json":
+        serializable = {k: v for k, v in data.items()
+                        if isinstance(v, (str, int, float, list, dict))}
+        return Response(
+            json.dumps(serializable, indent=2, default=str),
+            mimetype="application/json",
+            headers={"Content-Disposition": f'attachment; filename="{data.get("input","record")}.json"'},
+        )
+    return "File not found", 404
 
 
 @app.route("/scan", methods=["POST"])

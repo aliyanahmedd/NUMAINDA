@@ -375,14 +375,69 @@
       color: var(--dim);
     }
 
+    /* desktop nav menu = inline row */
+    .nav-menu { display: flex; align-items: center; gap: 2rem; }
+
+    /* hamburger button (hidden on desktop) */
+    .nav-toggle {
+      display: none;
+      flex-direction: column; justify-content: center; gap: 5px;
+      width: 40px; height: 40px; padding: 8px;
+      background: transparent; border: none; cursor: pointer;
+    }
+    .nav-toggle span {
+      display: block; height: 2px; width: 100%;
+      background: #fff; border-radius: 2px;
+      transition: transform 0.25s ease, opacity 0.2s ease;
+    }
+    .nav-toggle.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-toggle.open span:nth-child(2) { opacity: 0; }
+    .nav-toggle.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    @media (max-width: 600px) {
+      .steps, .stats-band, .mods { grid-template-columns: 1fr; }
+    }
+
     @media (max-width: 900px) {
-      .hero { flex-direction: column; padding: 2rem 1.5rem; text-align: center; }
-      .hero-right { display: none; }
+      .stats-band, .mods { grid-template-columns: repeat(2,1fr); }
       h1 { font-size: 2.2rem; }
       .chips { justify-content: center; }
       nav { padding: 0 1.5rem; }
-      .nav-links { display: none; }
-      footer { padding: 14px 1.5rem; }
+      footer { padding: 14px 1.5rem; flex-direction: column; gap: 6px; text-align: center; }
+
+      .nav-toggle { display: flex; }
+
+      .nav-menu {
+        position: absolute;
+        top: 72px; right: 0;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        background: #2f9fde;
+        border-top: 1px solid rgba(255,255,255,0.2);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+        width: 220px;
+        padding: 8px;
+        border-radius: 0 0 0 12px;
+        transform: translateY(-8px);
+        opacity: 0; pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+      }
+      .nav-menu.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
+
+      .nav-menu .nav-links {
+        flex-direction: column;
+        gap: 0; width: 100%;
+      }
+      .nav-menu .nav-links li { width: 100%; }
+      .nav-menu .nav-links a {
+        display: block; padding: 12px 14px; border-radius: 8px;
+      }
+      .nav-menu .nav-links a:hover { background: rgba(255,255,255,0.15); }
+
+      .nav-menu .nav-cta {
+        display: block; text-align: center; margin: 8px 6px 4px;
+      }
     }
   </style>
 </head>
@@ -398,15 +453,20 @@
       {% endif %}
     </a>
 
-    <ul class="nav-links">
-      <li><a href="/">Scan</a></li>
-      <li><a href="/about">About</a></li>
-      <li><a href="/features">Features</a></li>
-      <li><a href="/api">API</a></li>
-      <li><a href="/docs">Docs</a></li>
-    </ul>
+    <button class="nav-toggle" id="navToggle" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
 
-    <a href="/records" class="nav-cta">Records</a>
+    <div class="nav-menu" id="navMenu">
+      <ul class="nav-links">
+        <li><a href="/">Scan</a></li>
+        <li><a href="/about">About</a></li>
+        <li><a href="/features">Features</a></li>
+        <li><a href="/api">API</a></li>
+        <li><a href="/docs">Docs</a></li>
+      </ul>
+      <a href="/records" class="nav-cta">Records</a>
+    </div>
   </nav>
 
   <!-- Sticky logo hero -->
@@ -533,6 +593,16 @@
 
   <script>
     function setTarget(v) { document.querySelector('input[name="target"]').value = v; }
+
+    // mobile nav dropdown
+    const navToggle = document.getElementById('navToggle');
+    const navMenu = document.getElementById('navMenu');
+    if (navToggle) {
+      navToggle.addEventListener('click', () => {
+        navMenu.classList.toggle('open');
+        navToggle.classList.toggle('open');
+      });
+    }
 
     // Reveal the scan content as it scrolls into view (re-triggers both directions)
     const scanContent = document.getElementById('scan-content');

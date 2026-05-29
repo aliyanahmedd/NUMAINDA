@@ -8,18 +8,18 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --navy:   #060d1f;
-      --navy2:  #0b1530;
-      --navy3:  #0f1f42;
-      --border: #152040;
-      --blue:   #0ea5e9;
-      --cyan:   #06b6d4;
-      --text:   #e2eaf5;
-      --muted:  #7a92b4;
-      --dim:    #2d4266;
-      --red:    #f87171;
-      --yellow: #fbbf24;
-      --green:  #4ade80;
+      --navy:   #ffffff;
+      --navy2:  #f8fafc;
+      --navy3:  #f1f5f9;
+      --border: #e2e8f0;
+      --blue:   #2f9fde;
+      --cyan:   #2f9fde;
+      --text:   #0f172a;
+      --muted:  #475569;
+      --dim:    #94a3b8;
+      --red:    #dc2626;
+      --yellow: #ca8a04;
+      --green:  #16a34a;
     }
 
     body {
@@ -78,7 +78,7 @@
 
     table { width: 100%; border-collapse: collapse; }
 
-    thead { background: #0a1220; }
+    thead { background: #f1f5f9; }
 
     th {
       padding: 11px 16px;
@@ -94,12 +94,12 @@
     td {
       padding: 14px 16px;
       font-size: 13px;
-      border-bottom: 1px solid rgba(21,32,64,0.6);
+      border-bottom: 1px solid var(--border);
       vertical-align: middle;
     }
 
     tr:last-child td { border-bottom: none; }
-    tr:hover td { background: rgba(14,165,233,0.03); }
+    tr:hover td { background: rgba(47,159,222,0.06); }
 
     .target-cell { font-family: monospace; font-size: 13px; color: var(--text); font-weight: 500; }
 
@@ -110,9 +110,10 @@
       text-transform: uppercase; letter-spacing: 0.04em;
     }
 
-    .type-domain  { background: rgba(14,165,233,0.12); color: #7dd3fc; }
-    .type-ip      { background: rgba(168,85,247,0.12); color: #d8b4fe; }
-    .type-email   { background: rgba(34,197,94,0.12);  color: #86efac; }
+    .type-badge   { background: #eef2f7; color: #475569; }
+    .type-domain  { background: rgba(47,159,222,0.12); color: #1a6fa8; }
+    .type-ip      { background: rgba(124,58,237,0.12); color: #6d28d9; }
+    .type-email   { background: rgba(22,163,74,0.12);  color: #15803d; }
 
     .score-cell { font-family: monospace; font-weight: 700; font-size: 14px; }
     .score-high   { color: var(--red); }
@@ -160,6 +161,20 @@
       color: var(--dim);
       text-align: center;
     }
+
+    @media (max-width: 820px) {
+      nav { padding: 0 1.25rem; }
+      .page { padding: 1.5rem 1.25rem; }
+      .table-wrap { overflow-x: auto; }
+      table { min-width: 760px; }
+      .btn { padding: 7px 12px; font-size: 12px; }
+      .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+    }
+
+    @media (max-width: 520px) {
+      .nav-right .btn { padding: 6px 10px; font-size: 11px; }
+      .logo img { height: 44px; }
+    }
   </style>
 </head>
 <body>
@@ -168,7 +183,6 @@
     <div class="nav-left">
       <a href="/" class="logo">
         <img src="/static/logo.png" alt="logo"/>
-        <span>OSINT Agent</span>
       </a>
     </div>
     <div class="nav-right">
