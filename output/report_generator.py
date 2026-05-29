@@ -120,14 +120,120 @@ def save_html_report(findings: dict) -> Path:
     return path
 
 
+def _ascii(text: str) -> str:
+    """Replace common non-latin-1 glyphs so fpdf core fonts can render them."""
+    repl = {
+        "•": "-", "◦": "-", "·": "-", "→": "->", "⚠": "[!]", "✗": "x",
+        "✓": "v", "★": "*", "└": "+", "├": "+", "─": "-", "│": "|",
+        "≥": ">=", "≤": "<=", "“": '"', "”": '"', "’": "'", "‘": "'",
+    }
+    for k, v in repl.items():
+        text = text.replace(k, v)
+    return text.encode("latin-1", "replace").decode("latin-1")
+
+
 def save_pdf_report(findings: dict) -> Path | None:
+    """Render a clean structured PDF using fpdf2 (pure Python, no system libs)."""
     try:
-        from weasyprint import HTML as WP_HTML
+        from fpdf import FPDF
+    except ImportError:
+        from utils.helpers import log_warn
+        log_warn("fpdf2 not installed; run: pip install fpdf2")
+        return None
+
+    try:
         domain = findings.get("domain", "unknown")
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         path = REPORTS_DIR / f"{domain}_{ts}.pdf"
-        html_content = generate_html_report(findings)
-        WP_HTML(string=html_content).write_pdf(str(path))
+
+        scores       = findings.get("scores", {})
+        emails       = findings.get("emails", [])
+        subdomains   = findings.get("subdomains", [])
+        breaches     = findings.get("breaches", [])
+        threat_intel = findings.get("threat_intel", [])
+        tech         = findings.get("tech", {})
+        analysis     = findings.get("analysis", "")
+
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
+
+        # Header
+        pdf.set_fill_color(47, 159, 222)
+        pdf.rect(0, 0, 210, 26, "F")
+        pdf.set_xy(12, 7)
+        pdf.set_font("Helvetica", "B", 18)
+        pdf.set_text_color(255, 255, 255)
+        pdf.cell(0, 12, "OSINT Intelligence Report", ln=1)
+        pdf.set_text_color(30, 30, 30)
+        pdf.set_xy(pdf.l_margin, 32)
+
+        pdf.set_font("Helvetica", "B", 13)
+        pdf.cell(0, 8, _ascii(f"Target: {domain}"), ln=1)
+        pdf.set_x(pdf.l_margin)
+        pdf.set_font("Helvetica", "", 9)
+        pdf.set_text_color(110, 110, 110)
+        pdf.cell(0, 6, f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=1)
+        pdf.set_text_color(30, 30, 30)
+        pdf.ln(4)
+
+        def heading(t):
+            pdf.ln(2)
+            pdf.set_x(pdf.l_margin)
+            pdf.set_font("Helvetica", "B", 12)
+            pdf.set_text_color(47, 159, 222)
+            pdf.multi_cell(pdf.epw, 8, _ascii(t))
+            pdf.set_text_color(30, 30, 30)
+            pdf.set_font("Helvetica", "", 10)
+
+        def line(t):
+            pdf.set_x(pdf.l_margin)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.multi_cell(pdf.epw, 5.5, _ascii(t))
+
+        # Risk scores
+        heading("Risk Scores")
+        for label, key in [
+            ("Overall Attack Surface", "total"), ("Email Exposure", "email"),
+            ("Subdomain Exposure", "subdomain"), ("Breach Risk", "breach"),
+            ("Threat Intelligence", "threat"), ("SSL", "ssl"),
+            ("CVEs", "cve"), ("Open Ports", "port"),
+        ]:
+            if key in scores:
+                line(f"  {label:<26}: {scores.get(key, 0):.1f} / 10")
+
+        heading(f"Email Intelligence ({len(emails)})")
+        for e in emails[:25]:
+            line(f"  - {e.get('email','')}  ({e.get('position') or '-'}, conf={e.get('confidence',0)}%)")
+        if not emails: line("  None discovered")
+
+        risky = [s for s in subdomains if s.get("risk_flag")]
+        heading(f"Subdomains ({len(subdomains)} total, {len(risky)} risky)")
+        for s in subdomains[:40]:
+            flag = "  [RISKY]" if s.get("risk_flag") else ""
+            line(f"  - {s.get('subdomain','')}  {s.get('ip','')}{flag}")
+        if not subdomains: line("  None found")
+
+        heading(f"Breach Records ({len(breaches)})")
+        for b in breaches:
+            line(f"  - {b.get('email','')} in {b.get('breach_name','')}")
+        if not breaches: line("  None found")
+
+        malicious = [t for t in threat_intel if t.get("malicious")]
+        heading(f"Threat Intelligence ({len(malicious)} malicious)")
+        for t in threat_intel[:20]:
+            status = "MALICIOUS" if t.get("malicious") else "clean"
+            line(f"  - {t.get('indicator','')}  [{status}]  ({t.get('source','')})")
+        if not threat_intel: line("  No data")
+
+        heading("Tech Stack")
+        line("  " + (", ".join(tech.get("technologies", [])) or "Unknown"))
+
+        if analysis:
+            heading("AI Analysis")
+            line(analysis)
+
+        pdf.output(str(path))
         return path
     except Exception as e:
         from utils.helpers import log_warn
