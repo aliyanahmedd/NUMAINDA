@@ -66,7 +66,69 @@ CREATE TABLE IF NOT EXISTS risk_scores (
     subdomain_score REAL,
     breach_score REAL,
     threat_score REAL,
+    ssl_score   REAL DEFAULT 0,
+    cve_score   REAL DEFAULT 0,
+    port_score  REAL DEFAULT 0,
     computed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS geo_data (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    target_id    INTEGER REFERENCES targets(id),
+    ip           TEXT,
+    country      TEXT,
+    country_code TEXT,
+    city         TEXT,
+    org          TEXT,
+    isp          TEXT,
+    lat          REAL,
+    lon          REAL
+);
+
+CREATE TABLE IF NOT EXISTS ssl_certs (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    target_id    INTEGER REFERENCES targets(id),
+    hostname     TEXT,
+    valid        INTEGER,
+    expires      TEXT,
+    days_left    INTEGER,
+    issuer       TEXT,
+    subject      TEXT,
+    expired      INTEGER DEFAULT 0,
+    expiring_soon INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS cve_findings (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    target_id    INTEGER REFERENCES targets(id),
+    tech         TEXT,
+    version      TEXT,
+    cve_id       TEXT,
+    score        REAL,
+    severity     TEXT,
+    description  TEXT,
+    url          TEXT
+);
+
+CREATE TABLE IF NOT EXISTS paste_findings (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    target_id    INTEGER REFERENCES targets(id),
+    paste_id     TEXT,
+    paste_date   TEXT,
+    snippet      TEXT,
+    url          TEXT,
+    keyword      TEXT
+);
+
+CREATE TABLE IF NOT EXISTS port_findings (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    target_id    INTEGER REFERENCES targets(id),
+    ip           TEXT,
+    hostname     TEXT,
+    ports        TEXT,
+    services     TEXT,
+    dangerous    TEXT,
+    source       TEXT
 );
 """
 

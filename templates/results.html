@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Results: {{ target }} — OSINT Agent</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0e1a;
+      --bg2: #0d1117;
+      --card: #111827;
+      --card2: #0f172a;
+      --border: #1e2d40;
+      --green: #00ff88;
+      --cyan: #00ccff;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --orange: #fb923c;
+      --text: #e2e8f0;
+      --muted: #64748b;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+    }
+
+    a { color: var(--cyan); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Topbar ── */
+    .topbar {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .topbar-left { display: flex; align-items: center; gap: 1rem; }
+
+    .logo-text {
+      font-family: monospace;
+      font-weight: 700;
+      color: var(--green);
+      font-size: 1rem;
+      letter-spacing: 0.1em;
+    }
+
+    .target-chip {
+      background: rgba(0,255,136,0.08);
+      border: 1px solid rgba(0,255,136,0.2);
+      border-radius: 6px;
+      padding: 0.3rem 0.75rem;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: var(--green);
+    }
+
+    .topbar-right { display: flex; gap: 0.75rem; align-items: center; }
+
+    .btn {
+      padding: 0.45rem 1rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: opacity 0.2s;
+    }
+
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--green), #00cc6a);
+      color: #0a0e1a;
+    }
+
+    .btn-cyan {
+      background: rgba(0,204,255,0.1);
+      border: 1px solid rgba(0,204,255,0.3);
+      color: var(--cyan);
+    }
+
+    /* ── Main layout ── */
+    .main { padding: 2rem; max-width: 1400px; margin: 0 auto; }
+
+    /* ── Hero / risk score ── */
+    .hero {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      margin-bottom: 2rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.75rem 2rem;
+    }
+
+    .risk-ring {
+      flex-shrink: 0;
+      width: 110px;
+      height: 110px;
+      position: relative;
+    }
+
+    .risk-ring svg { transform: rotate(-90deg); }
+    .risk-ring-bg { fill: none; stroke: var(--border); stroke-width: 8; }
+    .risk-ring-fill { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+
+    .risk-value {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.5rem;
+      font-family: monospace;
+    }
+
+    .risk-value small { font-size: 0.65rem; color: var(--muted); font-weight: 400; }
+
+    .hero-info { flex: 1; }
+    .hero-info h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .hero-info p { color: var(--muted); font-size: 0.85rem; }
+
+    .score-bars { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; }
+
+    .score-bar-item { flex: 1; min-width: 120px; }
+    .score-bar-label { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.3rem; }
+    .score-bar-label span:last-child { font-family: monospace; color: var(--text); }
+    .score-bar-track { background: var(--bg); border-radius: 4px; height: 6px; }
+    .score-bar-fill { height: 6px; border-radius: 4px; transition: width 1s ease; }
+
+    /* ── Stats row ── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      text-align: center;
+    }
+
+    .stat-num { font-size: 2rem; font-weight: 800; font-family: monospace; }
+    .stat-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.25rem; }
+
+    /* ── Grid ── */
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+    .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 1.5rem; }
+    .full  { margin-bottom: 1.5rem; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 0.85rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0f172a;
+    }
+
+    .card-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-title span { color: var(--text); }
+    .count-badge {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.15rem 0.5rem;
+      font-family: monospace;
+      font-size: 0.75rem;
+    }
+
+    .card-body { padding: 1.25rem; }
+
+    /* ── Table ── */
+    .tbl { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .tbl th { text-align: left; padding: 0.4rem 0.75rem; color: var(--muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); }
+    .tbl td { padding: 0.55rem 0.75rem; border-bottom: 1px solid rgba(30,45,64,0.5); font-family: monospace; font-size: 0.8rem; }
+    .tbl tr:last-child td { border-bottom: none; }
+    .tbl tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .risk-flag {
+      display: inline-block;
+      background: rgba(248,113,113,0.1);
+      border: 1px solid rgba(248,113,113,0.3);
+      color: var(--red);
+      font-size: 0.65rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 3px;
+      margin-left: 0.4rem;
+    }
+
+    .confidence { color: var(--muted); font-size: 0.75rem; }
+
+    /* ── Tech badges ── */
+    .tech-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .tech-badge {
+      background: rgba(0,204,255,0.08);
+      border: 1px solid rgba(0,204,255,0.2);
+      color: var(--cyan);
+      padding: 0.3rem 0.7rem;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-family: monospace;
+    }
+    .tech-badge.cms { border-color: rgba(251,191,36,0.3); color: var(--yellow); background: rgba(251,191,36,0.07); }
+    .tech-badge.server { border-color: rgba(0,255,136,0.3); color: var(--green); background: rgba(0,255,136,0.07); }
+
+    /* ── Analysis ── */
+    .analysis-text {
+      font-size: 0.88rem;
+      line-height: 1.85;
+      color: #cbd5e1;
+      white-space: pre-wrap;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    /* ── Empty state ── */
+    .empty { color: var(--muted); font-size: 0.82rem; padding: 1.5rem; text-align: center; }
+
+    /* ── DNS ── */
+    .dns-kv { display: grid; grid-template-columns: 140px 1fr; gap: 0.4rem 1rem; font-size: 0.82rem; }
+    .dns-key { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.3rem 0; }
+    .dns-val { font-family: monospace; color: var(--cyan); padding: 0.3rem 0; word-break: break-all; }
+
+    /* ── Malicious badge ── */
+    .malicious-tag {
+      background: rgba(248,113,113,0.1);
+      border: 1px solid rgba(248,113,113,0.3);
+      color: var(--red);
+      font-size: 0.65rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 3px;
+    }
+
+    .clean-tag {
+      background: rgba(0,255,136,0.08);
+      border: 1px solid rgba(0,255,136,0.2);
+      color: var(--green);
+      font-size: 0.65rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 3px;
+    }
+
+    @media (max-width: 900px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .grid2, .grid3 { grid-template-columns: 1fr; }
+      .hero { flex-direction: column; text-align: center; }
+      .score-bars { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Topbar -->
+  <nav class="topbar">
+    <div class="topbar-left">
+      <span class="logo-text">OSINT AGENT</span>
+      <span class="target-chip">{{ target }}</span>
+    </div>
+    <div class="topbar-right">
+      <a href="/scan/{{ scan_id }}/graph" class="btn btn-cyan" target="_blank">🕸 Network Graph</a>
+      <a href="/scan/{{ scan_id }}/download/html" class="btn btn-ghost">↓ HTML Report</a>
+      <a href="/scan/{{ scan_id }}/download/json" class="btn btn-ghost">↓ JSON</a>
+      <a href="/" class="btn btn-primary">+ New Scan</a>
+    </div>
+  </nav>
+
+  <div class="main">
+
+    {# ── Username results ── #}
+    {% if findings.get('scan_type') == 'username' %}
+    {% set ud = findings.get('username_data', {}) %}
+    {% set found_platforms = ud.get('found', []) %}
+
+    <div class="card full" style="margin-bottom:1.5rem">
+      <div class="card-header">
+        <span class="card-title">👤 Username: @{{ ud.get('username', target) }}</span>
+        <span class="count-badge" style="color:var(--green)">Found on {{ found_platforms|length }} / {{ ud.get('total_checked', 0) }} platforms</span>
+      </div>
+      <div class="card-body" style="padding:0">
+        {% if found_platforms %}
+        <table class="tbl">
+          <thead><tr><th>Platform</th><th>Profile URL</th></tr></thead>
+          <tbody>
+            {% for p in found_platforms %}
+            <tr>
+              <td style="color:var(--green);font-weight:600">✓ {{ p.platform }}</td>
+              <td><a href="{{ p.url }}" target="_blank">{{ p.url }}</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Username not found on any checked platform</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {% set repos = findings.get('social', {}).get('repositories', []) %}
+    {% if repos %}
+    <div class="card full" style="margin-bottom:1.5rem">
+      <div class="card-header"><span class="card-title">👾 GitHub Repositories</span><span class="count-badge">{{ repos|length }}</span></div>
+      <div class="card-body" style="padding:0">
+        <table class="tbl">
+          <thead><tr><th>Repository</th><th>Stars</th><th>Language</th><th>Description</th></tr></thead>
+          <tbody>
+            {% for r in repos %}
+            <tr>
+              <td><a href="{{ r.get('url','#') }}" target="_blank">{{ r.get('name','—') }}</a></td>
+              <td style="color:var(--yellow)">★ {{ r.get('stars',0) }}</td>
+              <td style="color:var(--muted)">{{ r.get('language','—') }}</td>
+              <td style="color:var(--muted);font-size:0.75rem">{{ r.get('description','') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card full" style="margin-bottom:1.5rem">
+      <div class="card-header"><span class="card-title">🤖 Claude AI Analysis</span></div>
+      <div class="card-body"><pre class="analysis-text">{{ findings.get('analysis','') }}</pre></div>
+    </div>
+    <div style="display:flex;gap:1rem;justify-content:center;padding-bottom:3rem">
+      <a href="/" class="btn btn-primary">+ New Scan</a>
+    </div>
+
+    {% elif findings.get('scan_type') == 'ip' %}
+    {# ── IP results ── #}
+    {% set ip_data = findings.get('ip_data', {}) %}
+    {% set geo = findings.get('geo', []) %}
+    {% set ports = findings.get('ports', []) %}
+    {% set threat_intel = findings.get('threat_intel', []) %}
+    {% set malicious = threat_intel | selectattr('malicious') | list %}
+
+    <div class="stats" style="margin-bottom:1.5rem">
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--cyan)">{{ ports[0].get('ports',[])|length if ports else 0 }}</div>
+        <div class="stat-label">Open Ports</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:{{ 'var(--red)' if malicious else 'var(--green)' }}">{{ malicious|length }}</div>
+        <div class="stat-label">Malicious Flags</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:{{ 'var(--red)' if (ports[0].get('dangerous',[]) if ports else []) else 'var(--green)' }}">{{ ports[0].get('dangerous',[])|length if ports else 0 }}</div>
+        <div class="stat-label">Dangerous Ports</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--yellow);font-size:1rem">{{ geo[0].get('country','—') if geo else '—' }}</div>
+        <div class="stat-label">Country</div>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-bottom:1.5rem">
+      <div class="card">
+        <div class="card-header"><span class="card-title">📡 IP Intelligence</span></div>
+        <div class="card-body">
+          <div class="dns-kv">
+            <span class="dns-key">IP Address</span><span class="dns-val">{{ ip_data.get('ip','—') }}</span>
+            <span class="dns-key">Hostname</span><span class="dns-val">{{ ip_data.get('hostname') or 'No reverse DNS' }}</span>
+            <span class="dns-key">Org</span><span class="dns-val">{{ ip_data.get('whois',{}).get('org','—') }}</span>
+            <span class="dns-key">Country</span><span class="dns-val">{{ ip_data.get('whois',{}).get('country','—') }}</span>
+            {% if geo %}
+            <span class="dns-key">City</span><span class="dns-val">{{ geo[0].get('city','—') }}</span>
+            <span class="dns-key">ISP</span><span class="dns-val">{{ geo[0].get('isp','—') }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">🔌 Open Ports</span></div>
+        <div class="card-body" style="padding:0">
+          {% if ports %}
+          <table class="tbl">
+            <thead><tr><th>Port</th><th>Service</th><th>Risk</th></tr></thead>
+            <tbody>
+              {% set host = ports[0] %}
+              {% for p in host.get('ports',[]) %}
+              {% set is_dangerous = p in [21,22,23,3389,445,6379,27017,9200] %}
+              <tr>
+                <td style="font-family:monospace">{{ p }}</td>
+                <td style="color:var(--muted)">{{ host.get('services',{}).get(p|string, '—') }}</td>
+                <td>{% if is_dangerous %}<span class="malicious-tag">DANGEROUS</span>{% else %}<span class="clean-tag">NORMAL</span>{% endif %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="empty">No open ports found</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card full" style="margin-bottom:1.5rem">
+      <div class="card-header"><span class="card-title">🤖 Claude AI Analysis</span></div>
+      <div class="card-body"><pre class="analysis-text">{{ findings.get('analysis','') }}</pre></div>
+    </div>
+    <div style="display:flex;gap:1rem;justify-content:center;padding-bottom:3rem">
+      <a href="/" class="btn btn-primary">+ New Scan</a>
+    </div>
+
+    {% else %}
+    {# ── Domain results ── #}
+
+    {# ── Hero ── #}
+    {% set scores = findings.get('scores', {}) %}
+    {% set total = scores.get('total', 0) %}
+    {% set risk_color = '#f87171' if total >= 7 else ('#fbbf24' if total >= 4 else '#00ff88') %}
+    {% set circumference = 283 %}
+    {% set dash = circumference - (total / 10 * circumference) %}
+
+    <div class="hero">
+      <div class="risk-ring">
+        <svg width="110" height="110" viewBox="0 0 110 110">
+          <circle class="risk-ring-bg" cx="55" cy="55" r="45"/>
+          <circle class="risk-ring-fill"
+            cx="55" cy="55" r="45"
+            stroke="{{ risk_color }}"
+            stroke-dasharray="{{ circumference }}"
+            stroke-dashoffset="{{ dash }}"
+            id="ring-fill"
+          />
+        </svg>
+        <div class="risk-value" style="color:{{ risk_color }}">
+          {{ "%.1f"|format(total) }}
+          <small>/10</small>
+        </div>
+      </div>
+
+      <div class="hero-info">
+        <h2>Intelligence Report: {{ findings.get('domain', target) }}</h2>
+        <p>
+          {% if total >= 7 %}High risk attack surface detected.
+          {% elif total >= 4 %}Moderate risk — review flagged findings.
+          {% else %}Low risk profile.{% endif %}
+        </p>
+
+        <div class="score-bars">
+          {% for key, label in [('email','Email'),('subdomain','Subdomain'),('breach','Breach'),('threat','Threat'),('ssl','SSL'),('cve','CVEs'),('port','Ports'),('paste','Pastes')] %}
+          {% set val = scores.get(key, 0) %}
+          {% set color = '#f87171' if val >= 7 else ('#fbbf24' if val >= 4 else '#00ff88') %}
+          <div class="score-bar-item">
+            <div class="score-bar-label"><span>{{ label }}</span><span>{{ "%.1f"|format(val) }}</span></div>
+            <div class="score-bar-track">
+              <div class="score-bar-fill" style="width:{{ val * 10 }}%; background:{{ color }}"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {# ── Stats ── #}
+    {% set emails = findings.get('emails', []) %}
+    {% set subdomains = findings.get('subdomains', []) %}
+    {% set breaches = findings.get('breaches', []) %}
+    {% set threat_intel = findings.get('threat_intel', []) %}
+    {% set risky_subs = subdomains | selectattr('risk_flag') | list %}
+    {% set malicious = threat_intel | selectattr('malicious') | list %}
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--cyan)">{{ emails | length }}</div>
+        <div class="stat-label">Emails Found</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:{{ 'var(--red)' if risky_subs else 'var(--yellow)' }}">{{ subdomains | length }}</div>
+        <div class="stat-label">Subdomains &nbsp;<small style="color:var(--red)">{{ risky_subs|length }} risky</small></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:{{ 'var(--red)' if breaches else 'var(--green)' }}">{{ breaches | length }}</div>
+        <div class="stat-label">Breach Records</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:{{ 'var(--red)' if malicious else 'var(--green)' }}">{{ malicious | length }}</div>
+        <div class="stat-label">Malicious Indicators</div>
+      </div>
+    </div>
+
+    {# ── Email + Subdomains ── #}
+    <div class="grid2">
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📧 Email Intelligence</span>
+          <span class="count-badge">{{ emails | length }}</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          {% if emails %}
+          <table class="tbl">
+            <thead><tr><th>Email</th><th>Position</th><th>Conf.</th></tr></thead>
+            <tbody>
+              {% for e in emails[:15] %}
+              <tr>
+                <td>{{ e.email }}</td>
+                <td style="color:var(--muted)">{{ e.get('position','—') }}</td>
+                <td class="confidence">{{ e.get('confidence', '—') }}%</td>
+              </tr>
+              {% endfor %}
+              {% if emails | length > 15 %}
+              <tr><td colspan="3" style="color:var(--muted);text-align:center">… and {{ emails|length - 15 }} more</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="empty">No emails discovered</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🌐 Subdomains</span>
+          <span class="count-badge">{{ subdomains | length }}</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          {% if subdomains %}
+          <table class="tbl">
+            <thead><tr><th>Subdomain</th><th>IP</th></tr></thead>
+            <tbody>
+              {% for s in subdomains[:20] %}
+              <tr>
+                <td>
+                  {{ s.subdomain }}
+                  {% if s.get('risk_flag') %}<span class="risk-flag">RISKY</span>{% endif %}
+                </td>
+                <td style="color:var(--muted)">{{ s.get('ip', '—') }}</td>
+              </tr>
+              {% endfor %}
+              {% if subdomains | length > 20 %}
+              <tr><td colspan="2" style="color:var(--muted);text-align:center">… and {{ subdomains|length - 20 }} more</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="empty">No subdomains found</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# ── Breaches + Threat Intel + DNS ── #}
+    <div class="grid3">
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🔓 Breach Intel</span>
+          <span class="count-badge" style="{{ 'color:var(--red)' if breaches }}">{{ breaches | length }}</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          {% if breaches %}
+          <table class="tbl">
+            <thead><tr><th>Email</th><th>Breach</th><th>Date</th></tr></thead>
+            <tbody>
+              {% for b in breaches %}
+              <tr>
+                <td>{{ b.email }}</td>
+                <td style="color:var(--red)">{{ b.breach_name }}</td>
+                <td style="color:var(--muted)">{{ b.get('breach_date','—') }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="empty">No breach records found</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🛡️ Threat Intel</span>
+          <span class="count-badge" style="{{ 'color:var(--red)' if malicious }}">{{ threat_intel | length }}</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          {% if threat_intel %}
+          <table class="tbl">
+            <thead><tr><th>Indicator</th><th>Status</th><th>Hits</th></tr></thead>
+            <tbody>
+              {% for t in threat_intel %}
+              <tr>
+                <td>{{ t.indicator }}</td>
+                <td>
+                  {% if t.get('malicious') %}
+                  <span class="malicious-tag">MALICIOUS</span>
+                  {% else %}
+                  <span class="clean-tag">CLEAN</span>
+                  {% endif %}
+                </td>
+                <td style="color:var(--muted)">{{ t.get('engine_hits', '—') }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="empty">No threat data available</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📡 DNS & WHOIS</span>
+        </div>
+        <div class="card-body">
+          {% set dns = findings.get('dns', {}) %}
+          {% set whois = dns.get('whois', {}) %}
+          {% if dns %}
+          <div class="dns-kv">
+            {% if whois.get('registrar') %}
+            <span class="dns-key">Registrar</span>
+            <span class="dns-val">{{ whois.registrar }}</span>
+            {% endif %}
+            {% if whois.get('creation_date') %}
+            <span class="dns-key">Created</span>
+            <span class="dns-val">{{ whois.creation_date }}</span>
+            {% endif %}
+            {% if whois.get('country') %}
+            <span class="dns-key">Country</span>
+            <span class="dns-val">{{ whois.country }}</span>
+            {% endif %}
+            {% if whois.get('org') %}
+            <span class="dns-key">Org</span>
+            <span class="dns-val">{{ whois.org }}</span>
+            {% endif %}
+            {% for rec in dns.get('records', [])[:6] %}
+            <span class="dns-key">{{ rec.get('record_type','REC') }}</span>
+            <span class="dns-val">{{ rec.get('value','—') }}</span>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="empty">No DNS data available</p>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    {# ── SSL + CVEs + Ports ── #}
+    <div class="grid3">
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🔒 SSL Certificate</span>
+        </div>
+        <div class="card-body">
+          {% set ssl = findings.get('ssl', {}) %}
+          {% set main_cert = ssl.get('main') %}
+          {% if main_cert %}
+            {% if main_cert.get('expired') %}
+            <div style="background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);border-radius:6px;padding:0.75rem;margin-bottom:0.75rem;color:var(--red);font-size:0.82rem;">
+              ✗ Certificate EXPIRED {{ main_cert.get('days_left', 0)|abs }} days ago
+            </div>
+            {% elif main_cert.get('expiring_soon') %}
+            <div style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:6px;padding:0.75rem;margin-bottom:0.75rem;color:var(--yellow);font-size:0.82rem;">
+              ⚠ Expires in {{ main_cert.get('days_left') }} days
+            </div>
+            {% else %}
+            <div style="background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.2);border-radius:6px;padding:0.75rem;margin-bottom:0.75rem;color:var(--green);font-size:0.82rem;">
+              ✓ Valid — {{ main_cert.get('days_left') }} days remaining
+            </div>
+            {% endif %}
+          <div class="dns-kv">
+            <span class="dns-key">Expires</span>
+            <span class="dns-val">{{ main_cert.get('expires','—') }}</span>
+            <span class="dns-key">Issuer</span>
+            <span class="dns-val">{{ main_cert.get('issuer','—') }}</span>
+            <span class="dns-key">Subject</span>
+            <span class="dns-val">{{ main_cert.get('subject','—') }}</span>
+            {% if main_cert.get('sans') %}
+            <span class="dns-key">SANs</span>
+            <span class="dns-val">{{ main_cert.get('sans', [])|join(', ') }}</span>
+            {% endif %}
+          </div>
+          {% else %}
+          <p class="empty">No SSL data available</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🔍 CVE Findings</span>
+          {%- set ns = namespace(total=0) %}
+          {%- for e in findings.get('cves', []) %}{% set ns.total = ns.total + e.cves|length %}{% endfor %}
+          <span class="count-badge" style="{{ 'color:var(--red)' if ns.total > 0 }}">{{ ns.total }}</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          {% set cves = findings.get('cves', []) %}
+          {% if cves %}
+          <table class="tbl">
+            <thead><tr><th>Tech</th><th>CVE</th><th>Severity</th><th>Score</th></tr></thead>
+            <tbody>
+              {% for entry in cves %}
+                {% for cve in entry.cves[:3] %}
+                <tr>
+                  <td style="color:var(--cyan)">{{ entry.tech }}{% if entry.version != 'unknown' %}<br><small style="color:var(--muted)">v{{ entry.version }}</small>{% endif %}</td>
+                  <td><a href="{{ cve.url }}" target="_blank" style="font-size:0.75rem">{{ cve.id }}</a></td>
+                  <td>
+                    <span style="color:{{ 'var(--red)' if cve.severity in ('CRITICAL','HIGH') else ('var(--yellow)' if cve.severity == 'MEDIUM' else 'var(--muted)') }}">
+                      {{ cve.severity }}
+                    </span>
+                  </td>
+                  <td style="font-family:monospace">{{ cve.score or '—' }}</td>
+                </tr>
+                {% endfor %}
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="empty">No CVEs found for detected technologies</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🔌 Open Ports</span>
+          <span class="count-badge">{{ findings.get('ports', [])|length }} hosts</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          {% set ports = findings.get('ports', []) %}
+          {% if ports %}
+          <table class="tbl">
+            <thead><tr><th>Host / IP</th><th>Open Ports</th></tr></thead>
+            <tbody>
+              {% for h in ports[:10] %}
+              <tr>
+                <td style="color:var(--cyan);font-size:0.75rem">{{ h.ip }}</td>
+                <td>
+                  {% for p in h.get('ports', []) %}
+                  <span style="display:inline-block;margin:1px 2px;padding:1px 5px;border-radius:3px;font-size:0.72rem;
+                    background:{{ 'rgba(248,113,113,0.15)' if p in [21,22,23,3389,445,6379,27017,9200] else 'rgba(0,204,255,0.08)' }};
+                    border:1px solid {{ 'rgba(248,113,113,0.4)' if p in [21,22,23,3389,445,6379,27017,9200] else 'rgba(0,204,255,0.2)' }};
+                    color:{{ 'var(--red)' if p in [21,22,23,3389,445,6379,27017,9200] else 'var(--cyan)' }}">
+                    {{ p }}
+                  </span>
+                  {% endfor %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="empty">No open ports discovered</p>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    {# ── Geolocation + Pastes ── #}
+    <div class="grid2">
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🌍 IP Geolocation</span>
+          <span class="count-badge">{{ findings.get('geo', [])|length }} IPs</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          {% set geo = findings.get('geo', []) %}
+          {% if geo %}
+          <table class="tbl">
+            <thead><tr><th>IP</th><th>Location</th><th>Org / ISP</th></tr></thead>
+            <tbody>
+              {% for g in geo[:12] %}
+              <tr>
+                <td style="font-family:monospace;font-size:0.78rem">{{ g.ip }}</td>
+                <td>
+                  {{ g.get('city','') }}{% if g.get('city') and g.get('country') %}, {% endif %}{{ g.get('country','—') }}
+                  {% if g.get('country_code') %}<span style="color:var(--muted);font-size:0.72rem"> ({{ g.country_code }})</span>{% endif %}
+                </td>
+                <td style="color:var(--muted);font-size:0.75rem">{{ g.get('org') or g.get('isp','—') }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="empty">No geolocation data available</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📋 Paste Leaks</span>
+          <span class="count-badge" style="{{ 'color:var(--red)' if findings.get('pastes') }}">{{ findings.get('pastes', [])|length }}</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          {% set pastes = findings.get('pastes', []) %}
+          {% if pastes %}
+          <table class="tbl">
+            <thead><tr><th>Paste</th><th>Keyword</th><th>Date</th></tr></thead>
+            <tbody>
+              {% for p in pastes[:8] %}
+              <tr>
+                <td><a href="{{ p.url }}" target="_blank">{{ p.id }}</a></td>
+                <td style="color:var(--yellow);font-size:0.75rem">{{ p.get('keyword','—') }}</td>
+                <td style="color:var(--muted);font-size:0.75rem">{{ p.get('date','—') }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="empty">No paste leaks found</p>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    {# ── Tech Stack + Social ── #}
+    <div class="grid2">
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">⚙️ Tech Stack</span>
+        </div>
+        <div class="card-body">
+          {% set tech = findings.get('tech', {}) %}
+          {% if tech.get('technologies') or tech.get('server') or tech.get('cms') %}
+          <div class="tech-list">
+            {% if tech.get('server') %}
+            <span class="tech-badge server">{{ tech.server }}</span>
+            {% endif %}
+            {% if tech.get('cms') %}
+            <span class="tech-badge cms">{{ tech.cms }}</span>
+            {% endif %}
+            {% for t in tech.get('technologies', []) %}
+            <span class="tech-badge">{{ t }}</span>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="empty">No tech stack detected</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">👾 Social / GitHub</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          {% set social = findings.get('social', {}) %}
+          {% set repos = social.get('repositories', []) %}
+          {% set gh_users = social.get('github_users', []) %}
+          {% if repos %}
+          <table class="tbl">
+            <thead><tr><th>Repository</th><th>Stars</th><th>Language</th></tr></thead>
+            <tbody>
+              {% for r in repos[:8] %}
+              <tr>
+                <td><a href="{{ r.get('url','#') }}" target="_blank">{{ r.get('name','—') }}</a></td>
+                <td style="color:var(--yellow)">★ {{ r.get('stars', 0) }}</td>
+                <td style="color:var(--muted)">{{ r.get('language','—') }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="empty">No GitHub data found</p>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    {# ── AI Analysis ── #}
+    <div class="card full">
+      <div class="card-header">
+        <span class="card-title">🤖 Claude AI Analysis</span>
+        <span style="font-size:0.7rem;color:var(--muted)">claude-sonnet-4-6</span>
+      </div>
+      <div class="card-body">
+        {% set analysis = findings.get('analysis', '') %}
+        {% if analysis %}
+        <pre class="analysis-text">{{ analysis }}</pre>
+        {% else %}
+        <p class="empty">AI analysis not available</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ── Actions ── #}
+    <div style="display:flex;gap:1rem;justify-content:center;padding-bottom:3rem;flex-wrap:wrap">
+      <a href="/scan/{{ scan_id }}/graph" class="btn btn-cyan" target="_blank">🕸 Open Network Graph</a>
+      {% if has_pdf %}
+      <a href="/scan/{{ scan_id }}/download/pdf" class="btn btn-primary">↓ Download PDF Report</a>
+      {% endif %}
+      <a href="/scan/{{ scan_id }}/download/html" class="btn btn-ghost">↓ Download HTML Report</a>
+      <a href="/scan/{{ scan_id }}/download/txt" class="btn btn-ghost">↓ Download Text Report</a>
+      <a href="/scan/{{ scan_id }}/download/json" class="btn btn-ghost">↓ Download JSON</a>
+      <a href="/" class="btn btn-primary">+ New Scan</a>
+    </div>
+
+    {% endif %}{# end domain/ip/username branch #}
+
+  </div>
+
+</body>
+</html>

@@ -12,6 +12,7 @@ VIRUSTOTAL_API_KEY = os.getenv("VIRUSTOTAL_API_KEY", "")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 BREACHDIRECTORY_API_KEY = os.getenv("BREACHDIRECTORY_API_KEY", "")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+SHODAN_API_KEY = os.getenv("SHODAN_API_KEY", "")
 
 # Timeouts & rate limits
 REQUEST_TIMEOUT = 15           # seconds per HTTP request

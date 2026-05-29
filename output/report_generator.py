@@ -118,3 +118,18 @@ def save_html_report(findings: dict) -> Path:
     path = REPORTS_DIR / f"{domain}_{ts}.html"
     path.write_text(generate_html_report(findings), encoding="utf-8")
     return path
+
+
+def save_pdf_report(findings: dict) -> Path | None:
+    try:
+        from weasyprint import HTML as WP_HTML
+        domain = findings.get("domain", "unknown")
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path = REPORTS_DIR / f"{domain}_{ts}.pdf"
+        html_content = generate_html_report(findings)
+        WP_HTML(string=html_content).write_pdf(str(path))
+        return path
+    except Exception as e:
+        from utils.helpers import log_warn
+        log_warn(f"PDF generation failed: {e}")
+        return None

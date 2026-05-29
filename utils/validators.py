@@ -1,5 +1,6 @@
 """Input validation helpers."""
 import re
+import ipaddress
 
 
 def is_valid_domain(value: str) -> bool:
@@ -12,11 +13,21 @@ def is_valid_email(value: str) -> bool:
     return bool(re.match(pattern, value.strip()))
 
 
+def is_valid_ip(value: str) -> bool:
+    try:
+        ipaddress.ip_address(value.strip())
+        return True
+    except ValueError:
+        return False
+
+
 def detect_input_type(value: str) -> str:
-    """Return 'domain' | 'email' | 'unknown'."""
+    """Return 'domain' | 'email' | 'ip' | 'unknown'."""
     value = value.strip()
     if is_valid_email(value):
         return "email"
+    if is_valid_ip(value):
+        return "ip"
     if is_valid_domain(value):
         return "domain"
     return "unknown"

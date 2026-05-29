@@ -87,16 +87,116 @@ def insert_dns_records(target_id: int, records: list[dict]):
 def upsert_risk_score(target_id: int, scores: dict):
     conn = get_connection()
     conn.execute(
-        """INSERT INTO risk_scores (target_id, total_score, email_score, subdomain_score, breach_score, threat_score)
-           VALUES (:target_id, :total, :email, :subdomain, :breach, :threat)
+        """INSERT INTO risk_scores
+               (target_id, total_score, email_score, subdomain_score, breach_score,
+                threat_score, ssl_score, cve_score, port_score)
+           VALUES (:target_id, :total, :email, :subdomain, :breach, :threat,
+                   :ssl, :cve, :port)
            ON CONFLICT(target_id) DO UPDATE SET
                total_score=excluded.total_score,
                email_score=excluded.email_score,
                subdomain_score=excluded.subdomain_score,
                breach_score=excluded.breach_score,
                threat_score=excluded.threat_score,
+               ssl_score=excluded.ssl_score,
+               cve_score=excluded.cve_score,
+               port_score=excluded.port_score,
                computed_at=CURRENT_TIMESTAMP""",
-        {"target_id": target_id, **scores},
+        {
+            "target_id": target_id,
+            "total":     scores.get("total", 0),
+            "email":     scores.get("email", 0),
+            "subdomain": scores.get("subdomain", 0),
+            "breach":    scores.get("breach", 0),
+            "threat":    scores.get("threat", 0),
+            "ssl":       scores.get("ssl", 0),
+            "cve":       scores.get("cve", 0),
+            "port":      scores.get("port", 0),
+        },
+    )
+    conn.commit()
+    conn.close()
+
+
+def insert_geo_data(target_id: int, entries: list[dict]):
+    conn = get_connection()
+    conn.executemany(
+        """INSERT INTO geo_data (target_id, ip, country, country_code, city, org, isp, lat, lon)
+           VALUES (:target_id, :ip, :country, :country_code, :city, :org, :isp, :lat, :lon)""",
+        [{**e, "target_id": target_id} for e in entries],
+    )
+    conn.commit()
+    conn.close()
+
+
+def insert_ssl_certs(target_id: int, certs: list[dict]):
+    conn = get_connection()
+    rows = []
+    if certs.get("main"):
+        rows.append(certs["main"])
+    rows += certs.get("subdomains", [])
+    conn.executemany(
+        """INSERT INTO ssl_certs
+           (target_id, hostname, valid, expires, days_left, issuer, subject, expired, expiring_soon)
+           VALUES (:target_id, :hostname, :valid, :expires, :days_left, :issuer, :subject, :expired, :expiring_soon)""",
+        [{**r, "target_id": target_id} for r in rows if r],
+    )
+    conn.commit()
+    conn.close()
+
+
+def insert_cve_findings(target_id: int, findings: list[dict]):
+    conn = get_connection()
+    rows = []
+    for entry in findings:
+        for cve in entry.get("cves", []):
+            rows.append({
+                "target_id": target_id,
+                "tech": entry["tech"],
+                "version": entry.get("version", ""),
+                "cve_id": cve["id"],
+                "score": cve.get("score"),
+                "severity": cve.get("severity", ""),
+                "description": cve.get("description", ""),
+                "url": cve.get("url", ""),
+            })
+    if rows:
+        conn.executemany(
+            """INSERT INTO cve_findings
+               (target_id, tech, version, cve_id, score, severity, description, url)
+               VALUES (:target_id, :tech, :version, :cve_id, :score, :severity, :description, :url)""",
+            rows,
+        )
+    conn.commit()
+    conn.close()
+
+
+def insert_paste_findings(target_id: int, pastes: list[dict]):
+    conn = get_connection()
+    conn.executemany(
+        """INSERT INTO paste_findings (target_id, paste_id, paste_date, snippet, url, keyword)
+           VALUES (:target_id, :id, :date, :snippet, :url, :keyword)""",
+        [{**p, "target_id": target_id} for p in pastes],
+    )
+    conn.commit()
+    conn.close()
+
+
+def insert_port_findings(target_id: int, findings: list[dict]):
+    conn = get_connection()
+    conn.executemany(
+        """INSERT INTO port_findings (target_id, ip, hostname, ports, services, dangerous, source)
+           VALUES (:target_id, :ip, :hostname, :ports, :services, :dangerous, :source)""",
+        [
+            {
+                **f,
+                "target_id": target_id,
+                "ports": json.dumps(f.get("ports", [])),
+                "services": json.dumps(f.get("services", {})),
+                "dangerous": json.dumps(f.get("dangerous", [])),
+            }
+            for f in findings
+        ],
     )
     conn.commit()
     conn.close()

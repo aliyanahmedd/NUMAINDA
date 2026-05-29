@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scanning {{ target }} — OSINT Agent</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0e1a;
+      --card: #0d1117;
+      --border: #1e2d40;
+      --green: #00ff88;
+      --cyan: #00ccff;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --text: #e2e8f0;
+      --muted: #64748b;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,255,136,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,136,0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .scan-label {
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+
+    .target-name {
+      font-size: 1.8rem;
+      font-weight: 700;
+      font-family: monospace;
+      color: var(--green);
+      text-shadow: 0 0 20px rgba(0,255,136,0.4);
+    }
+
+    /* Phase progress bar */
+    .phases {
+      display: flex;
+      gap: 4px;
+      margin: 1.5rem 0;
+    }
+
+    .phase-dot {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      transition: background 0.4s;
+    }
+
+    .phase-dot.done { background: var(--green); }
+    .phase-dot.active { background: var(--cyan); animation: pulse 1s ease-in-out infinite; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .phase-label {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .phase-label span { color: var(--cyan); font-weight: 600; }
+
+    /* Terminal */
+    .terminal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(0,0,0,0.5);
+    }
+
+    .terminal-header {
+      background: #161b22;
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-red   { background: #f87171; }
+    .dot-yellow{ background: #fbbf24; }
+    .dot-green { background: #4ade80; }
+
+    .terminal-title {
+      margin-left: auto;
+      margin-right: auto;
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-family: monospace;
+    }
+
+    .status-badge {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-family: monospace;
+      font-weight: 600;
+    }
+
+    .status-badge.scanning {
+      background: rgba(0,204,255,0.1);
+      border: 1px solid rgba(0,204,255,0.3);
+      color: var(--cyan);
+    }
+
+    .status-badge.done {
+      background: rgba(0,255,136,0.1);
+      border: 1px solid rgba(0,255,136,0.3);
+      color: var(--green);
+    }
+
+    .status-badge.error {
+      background: rgba(248,113,113,0.1);
+      border: 1px solid rgba(248,113,113,0.3);
+      color: var(--red);
+    }
+
+    .terminal-body {
+      padding: 1.25rem;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.85rem;
+      line-height: 1.8;
+      height: 420px;
+      overflow-y: auto;
+    }
+
+    .terminal-body::-webkit-scrollbar { width: 6px; }
+    .terminal-body::-webkit-scrollbar-track { background: transparent; }
+    .terminal-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .line { display: flex; gap: 0.5rem; }
+    .line-prefix { color: var(--muted); user-select: none; }
+
+    .line-text { flex: 1; }
+    .line-text.info   { color: var(--cyan); }
+    .line-text.success{ color: var(--green); }
+    .line-text.warn   { color: var(--yellow); }
+    .line-text.error  { color: var(--red); }
+    .line-text.plain  { color: #94a3b8; }
+
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1em;
+      background: var(--green);
+      animation: blink 1s step-end infinite;
+      vertical-align: text-bottom;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .redirect-notice {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .redirect-notice a {
+      color: var(--green);
+      text-decoration: none;
+    }
+
+    .error-box {
+      background: rgba(248,113,113,0.07);
+      border: 1px solid rgba(248,113,113,0.3);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin-top: 1rem;
+      color: var(--red);
+      font-size: 0.85rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="scan-label">Scanning target</p>
+      <p class="target-name">{{ target }}</p>
+    </header>
+
+    <div class="phases" id="phases">
+      {% for i in range(14) %}
+      <div class="phase-dot" id="phase-{{ i }}"></div>
+      {% endfor %}
+    </div>
+    <p class="phase-label" id="phase-label">Initializing<span id="phase-num"></span></p>
+
+    <div class="terminal">
+      <div class="terminal-header">
+        <span class="dot dot-red"></span>
+        <span class="dot dot-yellow"></span>
+        <span class="dot dot-green"></span>
+        <span class="terminal-title">osint-agent — {{ target }}</span>
+        <span class="status-badge scanning" id="status-badge">SCANNING</span>
+      </div>
+      <div class="terminal-body" id="log">
+        <div class="line">
+          <span class="line-prefix">$</span>
+          <span class="line-text info">python main.py {{ target }}</span>
+        </div>
+        <div class="line">
+          <span class="line-prefix"> </span>
+          <span class="line-text plain" id="cursor-line"><span class="cursor"></span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-box" id="error-box"></div>
+
+    <p class="redirect-notice" id="redirect-notice" style="display:none">
+      Scan complete — redirecting to results... <a href="/scan/{{ scan_id }}/results">click here if not redirected</a>
+    </p>
+  </div>
+
+  <script>
+    const scanId = "{{ scan_id }}";
+    const log = document.getElementById('log');
+    const phases = document.querySelectorAll('.phase-dot');
+    const phaseLabel = document.getElementById('phase-label');
+    const statusBadge = document.getElementById('status-badge');
+    let currentPhase = -1;
+
+    const PHASE_MAP = {
+      // Domain flow
+      '[DNS]':      0,
+      '[EMAIL]':    1,
+      '[SUB]':      2,
+      '[GEO]':      3,
+      '[PORT]':     4,
+      '[BREACH]':   5,
+      '[TECH]':     6,
+      '[SSL]':      7,
+      '[CVE]':      8,
+      '[THREAT]':   9,
+      '[PASTE]':    10,
+      '[SOCIAL]':   11,
+      '[SCORE]':    12,
+      '[AI]':       13,
+      // IP flow
+      '[RDNS]':     0,
+      // Username flow
+      '[USERNAME]': 0,
+    };
+
+    const PHASE_NAMES = [
+      'DNS & WHOIS','Email Discovery','Subdomain Enum','IP Geolocation',
+      'Port Scanning','Breach Check','Tech Stack','SSL Certificate',
+      'CVE Lookup','Threat Intel','Paste Search','Social Media',
+      'Risk Scoring','AI Analysis'
+    ];
+
+    function getLineClass(text) {
+      if (text.startsWith('[+]')) return 'success';
+      if (text.startsWith('[*]')) return 'info';
+      if (text.startsWith('[!]')) return 'warn';
+      if (text.startsWith('[✗]') || text.startsWith('__ERROR')) return 'error';
+      return 'plain';
+    }
+
+    function appendLine(text) {
+      // Remove cursor line
+      const cursorLine = document.getElementById('cursor-line');
+      if (cursorLine) cursorLine.parentElement.remove();
+
+      const div = document.createElement('div');
+      div.className = 'line';
+      div.innerHTML = `<span class="line-prefix">›</span><span class="line-text ${getLineClass(text)}">${escHtml(text)}</span>`;
+      log.appendChild(div);
+
+      // Re-add cursor
+      const c = document.createElement('div');
+      c.className = 'line';
+      c.innerHTML = '<span class="line-prefix"> </span><span class="line-text plain" id="cursor-line"><span class="cursor"></span></span>';
+      log.appendChild(c);
+
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function escHtml(t) {
+      return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function updatePhase(text) {
+      for (const [prefix, idx] of Object.entries(PHASE_MAP)) {
+        if (text.startsWith(prefix)) {
+          // Mark previous phases done
+          for (let i = 0; i < idx; i++) phases[i].className = 'phase-dot done';
+          phases[idx].className = 'phase-dot active';
+          currentPhase = idx;
+          phaseLabel.innerHTML = `Phase ${idx + 1}/9 — <span>${PHASE_NAMES[idx]}</span>`;
+          break;
+        }
+      }
+      if (text.startsWith('[+]') && currentPhase >= 0) {
+        phases[currentPhase].className = 'phase-dot done';
+      }
+    }
+
+    const es = new EventSource(`/scan/${scanId}/stream`);
+
+    es.onmessage = function(e) {
+      const data = e.data;
+      if (data === '__PING__') return;
+
+      if (data === '__DONE__') {
+        es.close();
+        // Mark all done
+        phases.forEach(p => p.className = 'phase-dot done');
+        phaseLabel.innerHTML = 'Scan complete — <span>all phases done</span>';
+        statusBadge.textContent = 'DONE';
+        statusBadge.className = 'status-badge done';
+        document.getElementById('redirect-notice').style.display = 'block';
+        const cursorLine = document.getElementById('cursor-line');
+        if (cursorLine) cursorLine.parentElement.remove();
+        setTimeout(() => { window.location.href = `/scan/${scanId}/results`; }, 1500);
+        return;
+      }
+
+      if (data.startsWith('__ERROR__')) {
+        es.close();
+        const msg = data.replace('__ERROR__', '');
+        statusBadge.textContent = 'ERROR';
+        statusBadge.className = 'status-badge error';
+        const box = document.getElementById('error-box');
+        box.style.display = 'block';
+        box.textContent = '✗ Error: ' + msg;
+        appendLine('[✗] ' + msg);
+        return;
+      }
+
+      updatePhase(data);
+      appendLine(data);
+    };
+
+    es.onerror = function() {
+      // If scan already done, check status
+      fetch(`/scan/${scanId}/stream`).catch(() => {});
+    };
+  </script>
+</body>
+</html>

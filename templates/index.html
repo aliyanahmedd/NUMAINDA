@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OSINT Agent</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0e1a;
+      --bg2: #0f1420;
+      --card: #111827;
+      --border: #1e2d40;
+      --green: #00ff88;
+      --cyan: #00ccff;
+      --text: #e2e8f0;
+      --muted: #64748b;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Animated grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      animation: gridMove 20s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes gridMove {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(40px); }
+    }
+
+    /* Scanline overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.15) 2px,
+        rgba(0,0,0,0.15) 4px
+      );
+      pointer-events: none;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 2rem;
+      max-width: 780px;
+      width: 100%;
+    }
+
+    .logo {
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: var(--green);
+      text-shadow: 0 0 20px rgba(0,255,136,0.5);
+      margin-bottom: 1.5rem;
+      line-height: 1.3;
+      white-space: pre;
+      display: inline-block;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      background: linear-gradient(135deg, var(--green), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.9rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 3rem;
+    }
+
+    .form-wrap {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 0 40px rgba(0,255,136,0.05);
+    }
+
+
+    .input-group {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem 1.25rem;
+      color: var(--text);
+      font-size: 1rem;
+      font-family: monospace;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(0,255,136,0.1);
+    }
+
+    input[type="text"]::placeholder { color: var(--muted); }
+
+    button[type="submit"] {
+      background: linear-gradient(135deg, var(--green), #00cc6a);
+      color: #0a0e1a;
+      border: none;
+      border-radius: 8px;
+      padding: 0.85rem 1.75rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+      white-space: nowrap;
+    }
+
+    button[type="submit"]:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(0,255,136,0.3);
+    }
+
+    button[type="submit"]:active { transform: translateY(0); }
+
+    .examples {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.75rem;
+    }
+
+    .example-tag {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.25rem 0.6rem;
+      font-size: 0.75rem;
+      font-family: monospace;
+      color: var(--muted);
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .example-tag:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    .disclaimer {
+      margin-top: 2rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .disclaimer span { color: #f87171; }
+
+    .badge {
+      display: inline-block;
+      background: rgba(248,113,113,0.1);
+      border: 1px solid rgba(248,113,113,0.3);
+      color: #f87171;
+      font-size: 0.7rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-top: 2rem;
+    }
+
+    .feature {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .feature-icon { font-size: 1.1rem; margin-bottom: 0.25rem; }
+    .feature-name { color: var(--text); font-weight: 600; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <pre class="logo">  ___  ____ ___ _  _ _____     _   ____ ____ _  _ _____
+ / _ \/ ___|_ _| \| |_   _|   / \ / ___| ___| \| |_   _|
+| | | \___ \| ||  ` | | |    / _ \ |  _|  _| |  ` | | |
+| |_| |___) | || |\  | | |   / ___ \ |_| | |__| |\  | | |
+ \___/|____/___|_| \_| |_|  /_/   \_\____|____|_| \_| |_|</pre>
+
+    <h1>OSINT AGENT</h1>
+    <p class="subtitle">Open Source Intelligence Platform</p>
+
+    <div class="form-wrap">
+      <div class="badge">⚠ Authorized Use Only</div>
+
+      <form action="/scan" method="post">
+        <div class="input-group">
+          <input
+            type="text"
+            name="target"
+            placeholder="example.com  or  1.2.3.4  or  user@example.com"
+            autofocus
+            required
+          />
+          <button type="submit">SCAN →</button>
+        </div>
+        <div class="examples">
+          <span>Examples:</span>
+          <span class="example-tag" onclick="setTarget('github.com')">github.com</span>
+          <span class="example-tag" onclick="setTarget('8.8.8.8')">8.8.8.8</span>
+          <span class="example-tag" onclick="setTarget('tesla.com')">tesla.com</span>
+        </div>
+      </form>
+
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">📡</div>
+          <div class="feature-name">DNS & WHOIS</div>
+          records, registrar
+        </div>
+        <div class="feature">
+          <div class="feature-icon">📧</div>
+          <div class="feature-name">Email Intel</div>
+          Hunter.io discovery
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🌐</div>
+          <div class="feature-name">Subdomains</div>
+          crt.sh + Shodan
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🔓</div>
+          <div class="feature-name">Breaches</div>
+          HIBP + BreachDir
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🛡️</div>
+          <div class="feature-name">Threat Intel</div>
+          VirusTotal scan
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🤖</div>
+          <div class="feature-name">AI Analysis</div>
+          Claude Sonnet
+        </div>
+      </div>
+    </div>
+
+    <p class="disclaimer">
+      Only scan targets you <span>own</span> or have <span>explicit written permission</span> to test.<br>
+      Unauthorized reconnaissance may violate CFAA, GDPR, and local laws.
+    </p>
+  </div>
+
+  <script>
+    function setTarget(val) {
+      document.querySelector('input[name="target"]').value = val;
+    }
+  </script>
+</body>
+</html>
