@@ -34,6 +34,14 @@ HTML_SIGNATURES = {
 _VERSION_RE = re.compile(r'^([A-Za-z][A-Za-z0-9._-]*)[/ ]([0-9]+\.[0-9]+(?:\.[0-9]+)?).*$')
 
 
+_PROBE_PATHS = [
+    "/", "/robots.txt", "/sitemap.xml",
+    "/wp-login.php", "/wp-admin/",
+    "/admin", "/admin/login", "/login",
+    "/phpmyadmin/", "/joomla/", "/drupal/",
+]
+
+
 class TechAgent:
     def run(self, domain: str) -> dict:
         log_info(f"[TechAgent] Detecting tech stack for {domain}")
@@ -46,24 +54,38 @@ class TechAgent:
             "waf": None,
         }
 
+        base_url = None
         for scheme in ("https", "http"):
             try:
                 r = requests.get(
-                    f"{scheme}://{domain}",
-                    timeout=REQUEST_TIMEOUT,
-                    allow_redirects=True,
-                    headers={"User-Agent": "Mozilla/5.0"},
+                    f"{scheme}://{domain}", timeout=REQUEST_TIMEOUT,
+                    allow_redirects=True, headers={"User-Agent": "Mozilla/5.0"},
                 )
                 tech["headers"] = dict(r.headers)
                 tech["status_code"] = r.status_code
                 self._parse_headers(r.headers, tech)
                 self._parse_html(r.text, tech)
                 self._detect_waf(r.headers, tech)
-                log_success(f"[TechAgent] Detected: {tech['technologies']}")
+                base_url = f"{scheme}://{domain}"
                 break
             except requests.RequestException as e:
                 log_warn(f"[TechAgent] {scheme}://{domain} failed: {e}")
 
+        # Probe additional paths to detect CMS / admin panels
+        if base_url:
+            for path in _PROBE_PATHS[1:]:
+                try:
+                    r = requests.get(
+                        f"{base_url}{path}", timeout=5,
+                        allow_redirects=True, headers={"User-Agent": "Mozilla/5.0"},
+                    )
+                    self._parse_headers(r.headers, tech)
+                    self._parse_html(r.text, tech)
+                    self._check_path_clues(path, r.status_code, tech)
+                except Exception:
+                    pass
+
+        log_success(f"[TechAgent] Detected: {tech['technologies']}")
         return tech
 
     def _parse_headers(self, headers, tech: dict):
@@ -119,6 +141,23 @@ class TechAgent:
             tech["versioned"]["jQuery"] = jq_ver.group(1)
             if "jQuery" not in tech["technologies"]:
                 tech["technologies"].append("jQuery")
+
+    @staticmethod
+    def _check_path_clues(path: str, status: int, tech: dict):
+        clues = {
+            "/wp-login.php":   ("WordPress",  "cms"),
+            "/wp-admin/":      ("WordPress",  "cms"),
+            "/phpmyadmin/":    ("phpMyAdmin", None),
+            "/joomla/":        ("Joomla",     "cms"),
+            "/drupal/":        ("Drupal",     "cms"),
+            "/admin/login":    ("Admin Panel","none"),
+        }
+        if path in clues and status in (200, 301, 302):
+            name, ctype = clues[path]
+            if name not in tech["technologies"]:
+                tech["technologies"].append(name)
+            if ctype == "cms" and not tech["cms"]:
+                tech["cms"] = name
 
     @staticmethod
     def _detect_waf(headers, tech: dict):

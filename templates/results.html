@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Results: {{ target }} — OSINT Agent</title>
+  {% if findings.get('scan_type') == 'ip' %}
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  {% endif %}
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -439,6 +443,104 @@
       </div>
     </div>
 
+    {# ── Map Card ── #}
+    {% if geo and geo[0].get('lat') and geo[0].get('lon') %}
+    {% set g = geo[0] %}
+    <div class="card full" style="margin-bottom:1.5rem">
+      <div class="card-header" style="flex-wrap:wrap;gap:0.5rem">
+        <span class="card-title">📍 Location</span>
+        <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
+          <code id="coords-text" style="background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:0.25rem 0.6rem;font-size:0.78rem;color:var(--cyan)">
+            {{ g.lat }}, {{ g.lon }}
+          </code>
+          <button onclick="copyCoords()" class="btn btn-ghost" style="padding:0.3rem 0.75rem;font-size:0.75rem" id="copy-btn">
+            📋 Copy
+          </button>
+          <button onclick="toggleMap()" class="btn btn-cyan" style="padding:0.3rem 0.75rem;font-size:0.75rem" id="map-btn">
+            🗺 Show Map
+          </button>
+        </div>
+      </div>
+      <div id="map-container" style="display:none">
+        <div id="leaflet-map" style="height:420px;width:100%"></div>
+      </div>
+      <div class="card-body" style="padding:0.75rem 1.25rem">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;font-size:0.82rem">
+          <div><span style="color:var(--muted)">City</span><br><span style="font-family:monospace;color:var(--text)">{{ g.get('city','—') }}</span></div>
+          <div><span style="color:var(--muted)">Country</span><br><span style="font-family:monospace;color:var(--text)">{{ g.get('country','—') }} ({{ g.get('country_code','') }})</span></div>
+          <div><span style="color:var(--muted)">ISP / Org</span><br><span style="font-family:monospace;color:var(--text)">{{ g.get('isp') or g.get('org','—') }}</span></div>
+          <div><span style="color:var(--muted)">Latitude</span><br><span style="font-family:monospace;color:var(--cyan)">{{ g.lat }}</span></div>
+          <div><span style="color:var(--muted)">Longitude</span><br><span style="font-family:monospace;color:var(--cyan)">{{ g.lon }}</span></div>
+          <div><span style="color:var(--muted)">IP</span><br><span style="font-family:monospace;color:var(--green)">{{ g.ip }}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const LAT = {{ g.lat }};
+      const LON = {{ g.lon }};
+      const IP  = "{{ g.ip }}";
+      const CITY = "{{ g.get('city','') }}";
+      const COUNTRY = "{{ g.get('country','') }}";
+      let mapInitialised = false;
+
+      function toggleMap() {
+        const container = document.getElementById('map-container');
+        const btn = document.getElementById('map-btn');
+        const visible = container.style.display !== 'none';
+        container.style.display = visible ? 'none' : 'block';
+        btn.textContent = visible ? '🗺 Show Map' : '🗺 Hide Map';
+        if (!mapInitialised && !visible) {
+          initMap();
+          mapInitialised = true;
+        }
+      }
+
+      function initMap() {
+        const map = L.map('leaflet-map').setView([LAT, LON], 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors',
+          maxZoom: 19,
+        }).addTo(map);
+
+        const icon = L.divIcon({
+          html: `<div style="
+            width:16px;height:16px;border-radius:50%;
+            background:#00ff88;border:3px solid #0a0e1a;
+            box-shadow:0 0 12px rgba(0,255,136,0.7)">
+          </div>`,
+          iconSize: [16, 16],
+          iconAnchor: [8, 8],
+          className: '',
+        });
+
+        L.marker([LAT, LON], { icon })
+          .addTo(map)
+          .bindPopup(`
+            <div style="font-family:monospace;font-size:0.8rem;min-width:150px">
+              <strong style="color:#333">${IP}</strong><br>
+              ${CITY}${CITY && COUNTRY ? ', ' : ''}${COUNTRY}<br>
+              <span style="color:#666">${LAT}, ${LON}</span>
+            </div>
+          `)
+          .openPopup();
+      }
+
+      function copyCoords() {
+        const text = `${LAT}, ${LON}`;
+        navigator.clipboard.writeText(text).then(() => {
+          const btn = document.getElementById('copy-btn');
+          btn.textContent = '✓ Copied!';
+          btn.style.color = 'var(--green)';
+          setTimeout(() => {
+            btn.textContent = '📋 Copy';
+            btn.style.color = '';
+          }, 2000);
+        });
+      }
+    </script>
+    {% endif %}
+
     <div class="card full" style="margin-bottom:1.5rem">
       <div class="card-header"><span class="card-title">🤖 Claude AI Analysis</span></div>
       <div class="card-body"><pre class="analysis-text">{{ findings.get('analysis','') }}</pre></div>
@@ -809,7 +911,7 @@
           {% set geo = findings.get('geo', []) %}
           {% if geo %}
           <table class="tbl">
-            <thead><tr><th>IP</th><th>Location</th><th>Org / ISP</th></tr></thead>
+            <thead><tr><th>IP</th><th>Location</th><th>Org / ISP</th><th></th></tr></thead>
             <tbody>
               {% for g in geo[:12] %}
               <tr>
@@ -819,6 +921,16 @@
                   {% if g.get('country_code') %}<span style="color:var(--muted);font-size:0.72rem"> ({{ g.country_code }})</span>{% endif %}
                 </td>
                 <td style="color:var(--muted);font-size:0.75rem">{{ g.get('org') or g.get('isp','—') }}</td>
+                <td>
+                  {% if g.get('lat') and g.get('lon') %}
+                  <button
+                    onclick="openGeoModal('{{ g.ip }}','{{ g.get('city','') }}','{{ g.get('country','') }}',{{ g.lat }},{{ g.lon }})"
+                    class="btn btn-cyan"
+                    style="padding:0.2rem 0.6rem;font-size:0.7rem">
+                    📍 Map
+                  </button>
+                  {% endif %}
+                </td>
               </tr>
               {% endfor %}
             </tbody>
@@ -945,5 +1057,97 @@
 
   </div>
 
+<!-- Geo Map Modal -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<div id="geo-modal" style="
+  display:none;position:fixed;inset:0;z-index:9999;
+  background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;">
+  <div style="
+    background:#111827;border:1px solid #1e2d40;border-radius:12px;
+    width:90%;max-width:700px;overflow:hidden;box-shadow:0 0 60px rgba(0,255,136,0.1)">
+    <div style="padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1e2d40">
+      <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
+        <span style="font-size:0.8rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#64748b">📍 Location</span>
+        <code id="modal-ip" style="background:#0a0e1a;border:1px solid #1e2d40;border-radius:4px;padding:0.2rem 0.5rem;font-size:0.78rem;color:#00ccff"></code>
+        <code id="modal-coords" style="background:#0a0e1a;border:1px solid #1e2d40;border-radius:4px;padding:0.2rem 0.5rem;font-size:0.78rem;color:#00ccff"></code>
+        <button id="modal-copy-btn" onclick="modalCopyCoords()" style="
+          background:transparent;border:1px solid #1e2d40;border-radius:6px;
+          padding:0.2rem 0.6rem;font-size:0.72rem;color:#e2e8f0;cursor:pointer">
+          📋 Copy
+        </button>
+      </div>
+      <button onclick="closeGeoModal()" style="
+        background:transparent;border:none;color:#64748b;
+        font-size:1.4rem;cursor:pointer;line-height:1">✕</button>
+    </div>
+    <div id="modal-map" style="height:400px;width:100%"></div>
+    <div id="modal-info" style="padding:0.75rem 1.25rem;font-size:0.8rem;color:#64748b;border-top:1px solid #1e2d40"></div>
+  </div>
+</div>
+
+<script>
+  let modalMap = null;
+  let modalMarker = null;
+  let _modalLat = 0, _modalLon = 0;
+
+  function openGeoModal(ip, city, country, lat, lon) {
+    _modalLat = lat; _modalLon = lon;
+    document.getElementById('modal-ip').textContent = ip;
+    document.getElementById('modal-coords').textContent = `${lat}, ${lon}`;
+    document.getElementById('modal-info').textContent =
+      `${city}${city && country ? ', ' : ''}${country}  ·  ${lat}, ${lon}`;
+
+    const modal = document.getElementById('geo-modal');
+    modal.style.display = 'flex';
+
+    setTimeout(() => {
+      if (!modalMap) {
+        modalMap = L.map('modal-map').setView([lat, lon], 11);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors', maxZoom: 19,
+        }).addTo(modalMap);
+      } else {
+        modalMap.setView([lat, lon], 11);
+        if (modalMarker) modalMap.removeLayer(modalMarker);
+      }
+
+      const icon = L.divIcon({
+        html: `<div style="width:14px;height:14px;border-radius:50%;background:#00ff88;border:3px solid #0a0e1a;box-shadow:0 0 14px rgba(0,255,136,0.8)"></div>`,
+        iconSize: [14, 14], iconAnchor: [7, 7], className: '',
+      });
+
+      modalMarker = L.marker([lat, lon], { icon })
+        .addTo(modalMap)
+        .bindPopup(`<div style="font-family:monospace;font-size:0.8rem"><strong>${ip}</strong><br>${city}${city&&country?', ':''}${country}<br><span style="color:#666">${lat}, ${lon}</span></div>`)
+        .openPopup();
+
+      modalMap.invalidateSize();
+    }, 50);
+  }
+
+  function closeGeoModal() {
+    document.getElementById('geo-modal').style.display = 'none';
+  }
+
+  function modalCopyCoords() {
+    navigator.clipboard.writeText(`${_modalLat}, ${_modalLon}`).then(() => {
+      const btn = document.getElementById('modal-copy-btn');
+      btn.textContent = '✓ Copied!';
+      btn.style.color = '#00ff88';
+      setTimeout(() => { btn.textContent = '📋 Copy'; btn.style.color = ''; }, 2000);
+    });
+  }
+
+  // Close on backdrop click
+  document.getElementById('geo-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeGeoModal();
+  });
+
+  // Close on Escape key
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeGeoModal(); });
+</script>
 </body>
 </html>
