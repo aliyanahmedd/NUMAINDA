@@ -28,9 +28,18 @@ from agents.paste_agent import PasteAgent
 from agents.ip_agent import IPAgent
 
 
+_NO_AI_MESSAGE = (
+    "AI analysis was not generated because no ANTHROPIC_API_KEY is configured. "
+    "All other OSINT findings above are complete. Set the key to enable the "
+    "Claude-written intelligence report."
+)
+
+
 class OSINTOrchestrator:
     def __init__(self, progress_cb=None):
-        self.client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        # Only build the Anthropic client when a key is present; the AI report
+        # is skipped gracefully otherwise.
+        self.client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
         self._emit = progress_cb or (lambda msg: None)
         init_db()
 
@@ -168,11 +177,15 @@ class OSINTOrchestrator:
         self._emit(f"[+] Risk scoring complete - Overall: {scores.get('total', 0):.1f}/10")
 
         print_section("Phase 14 - AI Analysis")
-        self._emit("[AI] Phase 14/14 - Claude AI analyzing findings...")
-        analysis = self._claude_domain_analysis(domain, findings)
-        findings["analysis"] = analysis
-        insert_analysis(target_id, analysis)
-        self._emit("[+] AI analysis complete")
+        if ANTHROPIC_API_KEY:
+            self._emit("[AI] Phase 14/14 - Claude AI analyzing findings...")
+            analysis = self._claude_domain_analysis(domain, findings)
+            findings["analysis"] = analysis
+            insert_analysis(target_id, analysis)
+            self._emit("[+] AI analysis complete")
+        else:
+            findings["analysis"] = _NO_AI_MESSAGE
+            self._emit("[!] AI analysis skipped - no ANTHROPIC_API_KEY configured")
 
         return findings
 
@@ -220,11 +233,15 @@ class OSINTOrchestrator:
         self._emit(f"[+] Risk scoring complete - Overall: {scores.get('total', 0):.1f}/10")
 
         print_section("Phase 6 - AI Analysis")
-        self._emit("[AI] Phase 6/6 - Claude AI analyzing findings...")
-        analysis = self._claude_ip_analysis(ip, findings)
-        findings["analysis"] = analysis
-        insert_analysis(target_id, analysis)
-        self._emit("[+] AI analysis complete")
+        if ANTHROPIC_API_KEY:
+            self._emit("[AI] Phase 6/6 - Claude AI analyzing findings...")
+            analysis = self._claude_ip_analysis(ip, findings)
+            findings["analysis"] = analysis
+            insert_analysis(target_id, analysis)
+            self._emit("[+] AI analysis complete")
+        else:
+            findings["analysis"] = _NO_AI_MESSAGE
+            self._emit("[!] AI analysis skipped - no ANTHROPIC_API_KEY configured")
 
         return findings
 
