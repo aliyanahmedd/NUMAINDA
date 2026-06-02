@@ -19,10 +19,16 @@ from flask import Flask, Response, redirect, render_template, request, send_file
 
 from agents.orchestrator import OSINTOrchestrator
 from database.db import get_all_records, get_record_detail, insert_scan_files, get_scan_files
+from database.models import init_db
 from output.graph_visualizer import save_graph
 from output.report_generator import save_html_report, save_text_report, save_pdf_report
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
+
+# Ensure the database schema exists on startup. The disk starts clean on each
+# Render deploy, so DB-backed pages (e.g. /records) would otherwise 500 with
+# "no such table" until the first scan ran init_db().
+init_db()
 
 # In-memory scan store: scan_id -> {queue, findings, error, done, target, graph_path, report_path}
 _scans: dict = {}
