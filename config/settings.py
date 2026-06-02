@@ -28,6 +28,11 @@ DATABASE_PATH = BASE_DIR / "database" / "osint.db"
 REPORTS_DIR = BASE_DIR / "output" / "reports"
 GRAPHS_DIR = BASE_DIR / "output" / "graphs"
 
+# Ensure writable dirs exist (Render's filesystem starts clean on each deploy)
+DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
+REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+GRAPHS_DIR.mkdir(parents=True, exist_ok=True)
+
 # Risk thresholds (0-10 scale)
 RISK_HIGH = 7.0
 RISK_MEDIUM = 4.0

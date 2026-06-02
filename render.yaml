@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: numainda
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    # Single worker is required: scan state lives in an in-memory dict and
+    # background threads, so requests must hit the same process. gthread +
+    # high timeout keeps the SSE progress stream alive during long scans.
+    startCommand: gunicorn app:app --workers 1 --threads 16 --worker-class gthread --timeout 0 --bind 0.0.0.0:$PORT
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: HUNTER_API_KEY
+        sync: false
+      - key: VIRUSTOTAL_API_KEY
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: BREACHDIRECTORY_API_KEY
+        sync: false
+      - key: SHODAN_API_KEY
+        sync: false
+      - key: ABUSEIPDB_API_KEY
+        sync: false
