@@ -90,6 +90,21 @@ def github_user_repos(username: str) -> list | None:
     )
 
 
+# ── Blockchain / Crypto wallet (Blockchair - free, no key) ────────────────────
+
+def btc_address_info(address: str) -> dict | None:
+    """Bitcoin address data via blockchain.info (free, no key)."""
+    return _get(f"https://blockchain.info/rawaddr/{address}", params={"limit": 10})
+
+
+def eth_address_info(address: str) -> dict | None:
+    """Ethereum address data via Ethplorer (free 'freekey', no signup)."""
+    return _get(
+        f"https://api.ethplorer.io/getAddressInfo/{address}",
+        params={"apiKey": "freekey"},
+    )
+
+
 # ── DNS (no API key needed) ───────────────────────────────────────────────────
 
 def crt_sh_subdomains(domain: str) -> list[str]:

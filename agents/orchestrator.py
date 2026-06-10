@@ -3,7 +3,7 @@ Orchestrator Agent - routes to domain, IP, or username scan flows.
 """
 import anthropic
 from config.settings import ANTHROPIC_API_KEY
-from utils.validators import detect_input_type, normalize_domain, extract_domain_from_email
+from utils.validators import detect_input_type, normalize_domain, extract_domain_from_email, detect_wallet_chain
 from utils.helpers import log_info, log_success, log_warn, print_section
 from database.models import init_db
 from database.db import (
@@ -26,6 +26,7 @@ from agents.port_agent import PortAgent
 from agents.cve_agent import CVEAgent
 from agents.paste_agent import PasteAgent
 from agents.ip_agent import IPAgent
+from agents.wallet_agent import WalletAgent
 
 
 _NO_AI_MESSAGE = (
@@ -46,6 +47,14 @@ class OSINTOrchestrator:
     # ── Entry point ────────────────────────────────────────────────────────────
 
     def run(self, raw_input: str) -> dict:
+        # Crypto wallet addresses are checked first - they never match the
+        # domain/email/ip patterns but would otherwise fall through to "domain".
+        wallet_chain = detect_wallet_chain(raw_input)
+        if wallet_chain != "unknown":
+            self._emit(f"[*] {wallet_chain.title()} wallet detected: {raw_input.strip()}")
+            target_id = create_target(raw_input.strip(), "wallet")
+            return self._run_wallet(raw_input.strip(), target_id)
+
         input_type = detect_input_type(raw_input)
 
         if input_type == "email":
@@ -241,6 +250,37 @@ class OSINTOrchestrator:
             self._emit("[+] AI analysis complete")
         else:
             findings["analysis"] = _NO_AI_MESSAGE
+            self._emit("[!] AI analysis skipped - no ANTHROPIC_API_KEY configured")
+
+        return findings
+
+
+    # ── Wallet flow (2 phases) ─────────────────────────────────────────────────
+
+    def _run_wallet(self, address: str, target_id: int) -> dict:
+        findings: dict = {"scan_type": "wallet", "domain": address, "target_id": target_id}
+
+        print_section("Phase 1 - On-chain Lookup")
+        self._emit("[WALLET] Phase 1/2 - Fetching public on-chain data...")
+        wallet = WalletAgent().run(address)
+        findings["wallet"] = wallet
+
+        if not wallet.get("found"):
+            self._emit("[!] No on-chain data found for this address")
+            findings["analysis"] = "No on-chain activity found for this wallet address."
+            return findings
+
+        bal = wallet.get("balance", 0)
+        sym = wallet.get("symbol", "")
+        self._emit(f"[+] On-chain data retrieved - {bal} {sym} | {wallet.get('tx_count', 0)} txs")
+
+        print_section("Phase 2 - AI Analysis")
+        analysis = wallet.get("analysis") or "AI analysis not available."
+        findings["analysis"] = analysis
+        if ANTHROPIC_API_KEY:
+            insert_analysis(target_id, analysis)
+            self._emit("[+] AI analysis complete")
+        else:
             self._emit("[!] AI analysis skipped - no ANTHROPIC_API_KEY configured")
 
         return findings

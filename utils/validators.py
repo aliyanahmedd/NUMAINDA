@@ -33,6 +33,28 @@ def detect_input_type(value: str) -> str:
     return "unknown"
 
 
+def is_valid_eth_address(value: str) -> bool:
+    return bool(re.match(r"^0x[a-fA-F0-9]{40}$", value.strip()))
+
+
+def is_valid_btc_address(value: str) -> bool:
+    value = value.strip()
+    # Legacy P2PKH/P2SH (base58) or bech32 (segwit)
+    if re.match(r"^(bc1)[a-z0-9]{25,90}$", value):
+        return True
+    return bool(re.match(r"^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$", value))
+
+
+def detect_wallet_chain(value: str) -> str:
+    """Return 'ethereum' | 'bitcoin' | 'unknown'."""
+    value = value.strip()
+    if is_valid_eth_address(value):
+        return "ethereum"
+    if is_valid_btc_address(value):
+        return "bitcoin"
+    return "unknown"
+
+
 def extract_domain_from_email(email: str) -> str:
     return email.split("@")[-1].lower().strip()
 

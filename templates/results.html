@@ -404,8 +404,98 @@
 
   <div class="main">
 
+    {# ── Wallet results ── #}
+    {% if findings.get('scan_type') == 'wallet' %}
+    {% set w = findings.get('wallet', {}) %}
+
+    <div class="stats" style="margin-bottom:1.5rem">
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--cyan);font-size:1.4rem">{{ w.get('balance', 0) }}</div>
+        <div class="stat-label">Balance ({{ w.get('symbol','-') }})</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--green)">{{ w.get('tx_count', 0) }}</div>
+        <div class="stat-label">Transactions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--yellow);font-size:1.1rem">{{ w.get('chain','-')|title }}</div>
+        <div class="stat-label">Chain</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--cyan);font-size:1.1rem">
+          {{ w.get('tokens', [])|length if w.get('chain') == 'ethereum' else (w.get('last_seen') or '-') }}
+        </div>
+        <div class="stat-label">{{ 'Tokens Held' if w.get('chain') == 'ethereum' else 'Last Seen' }}</div>
+      </div>
+    </div>
+
+    <div class="card full" style="margin-bottom:1.5rem">
+      <div class="card-header"><span class="card-title">⛓ Wallet Overview</span></div>
+      <div class="card-body">
+        <div class="dns-kv">
+          <span class="dns-key">Address</span><span class="dns-val">{{ w.get('address', target) }}</span>
+          <span class="dns-key">Chain</span><span class="dns-val">{{ w.get('chain','-')|title }}</span>
+          <span class="dns-key">Balance</span><span class="dns-val">{{ w.get('balance', 0) }} {{ w.get('symbol','') }}</span>
+          {% if w.get('chain') == 'bitcoin' %}
+          <span class="dns-key">Total Received</span><span class="dns-val">{{ w.get('total_received', 0) }} BTC</span>
+          <span class="dns-key">Total Spent</span><span class="dns-val">{{ w.get('total_spent', 0) }} BTC</span>
+          <span class="dns-key">Last Seen</span><span class="dns-val">{{ w.get('last_seen') or '-' }}</span>
+          {% endif %}
+          <span class="dns-key">Tx Count</span><span class="dns-val">{{ w.get('tx_count', 0) }}</span>
+          <span class="dns-key">Explorer</span><span class="dns-val"><a href="{{ w.get('explorer','#') }}" target="_blank">{{ w.get('explorer','-') }}</a></span>
+        </div>
+      </div>
+    </div>
+
+    {% if w.get('chain') == 'ethereum' and w.get('tokens') %}
+    <div class="card full" style="margin-bottom:1.5rem">
+      <div class="card-header"><span class="card-title">🪙 Token Holdings</span><span class="count-badge">{{ w.get('tokens', [])|length }}</span></div>
+      <div class="card-body" style="padding:0">
+        <table class="tbl">
+          <thead><tr><th>Symbol</th><th>Name</th><th>Balance</th></tr></thead>
+          <tbody>
+            {% for t in w.get('tokens', []) %}
+            <tr>
+              <td style="color:var(--cyan);font-weight:600">{{ t.get('symbol') or '-' }}</td>
+              <td style="color:var(--muted)">{{ t.get('name') or '-' }}</td>
+              <td style="font-family:monospace">{{ t.get('balance', 0) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if w.get('chain') == 'bitcoin' and w.get('recent_txs') %}
+    <div class="card full" style="margin-bottom:1.5rem">
+      <div class="card-header"><span class="card-title">🔗 Recent Transactions</span><span class="count-badge">{{ w.get('recent_txs', [])|length }}</span></div>
+      <div class="card-body" style="padding:0">
+        <table class="tbl">
+          <thead><tr><th>Transaction Hash</th></tr></thead>
+          <tbody>
+            {% for h in w.get('recent_txs', []) %}
+            <tr><td><a href="https://blockchain.info/tx/{{ h }}" target="_blank" style="font-family:monospace;font-size:0.75rem">{{ h }}</a></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card full" style="margin-bottom:1.5rem">
+      <div class="card-header">
+        <span class="card-title">🤖 Claude AI Analysis</span>
+        <span style="font-size:0.7rem;color:var(--muted)">claude-sonnet-4-6</span>
+      </div>
+      <div class="card-body"><pre class="analysis-text">{{ findings.get('analysis','') }}</pre></div>
+    </div>
+    <div style="display:flex;gap:1rem;justify-content:center;padding-bottom:3rem">
+      <a href="/" class="btn btn-primary">+ New Scan</a>
+    </div>
+
     {# ── Username results ── #}
-    {% if findings.get('scan_type') == 'username' %}
+    {% elif findings.get('scan_type') == 'username' %}
     {% set ud = findings.get('username_data', {}) %}
     {% set found_platforms = ud.get('found', []) %}
 
